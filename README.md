@@ -1,4 +1,4 @@
-MathInStep is a fully portable, browser-based symbolic math solver that runs entirely from a single HTML file — no installation, no backend, but yes, still require internet connection to download pyscript (pyton in browser) and other library.
+MathInStep is a fully portable, browser-based symbolic math solver that runs entirely from a single HTML file — no installation, no backend, but yes, still require internet connection to download pyscript (python-in-browser) and other library.
 Built with PyScript, SymPy, and Lark, MathInStep provides a scaffolded, step-by-step math solving experience. It doesn’t just check answers — it understands the structure and reasoning behind them.
 
 ✨ Key Features

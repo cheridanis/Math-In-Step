@@ -50,7 +50,7 @@ We gratefully acknowledge the support from UMB and all participating faculty, st
 
 <p align="center">
   <a href="https://www.mercubuana.ac.id/">
-    <img src="logoumb.jpg" alt="UMB Logo" width="140">
+    <img src="logoumb.jpg" alt="UMB Logo" width="200">
   </a>
 </p>
 

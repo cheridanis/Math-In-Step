@@ -1,5 +1,5 @@
-**Math-In-Step** is a fully portable, browser-based symbolic math solver that runs entirely from a single HTML file — no installation, no backend, but yes, still require internet connection to download pyscript (python-in-browser) and other library.
-Built with PyScript, SymPy, and Lark, MathInStep provides a scaffolded, step-by-step math solving experience. It doesn’t just check answers — it understands the structure and reasoning behind them.
+**Math-In-Step** is a fully portable, browser-based symbolic math solver that runs entirely from a single HTML file — no installation, no backend, but yes, still require internet connection to download Pyscript (python-in-browser) and other libraries.
+Built with PyScript, SymPy, and Lark, **Math-In-Step** provides a simple ecosystem to provide scaffolded, step-by-step math solving experience. It doesn’t just check answers — it understands the structure and reasoning behind them.
 
 ✨ Key Features
 
@@ -15,13 +15,13 @@ Built with PyScript, SymPy, and Lark, MathInStep provides a scaffolded, step-by-
 
 🧠 SymPy-powered symbolic understanding — precise, reliable, and fast
 
-🧱 Why Math-In-Step
+🧱 Why **Math-In-Step
 
-Unlike traditional math solvers that only provide final answers, MathInStep focuses on learning through steps.
-It interprets student answers structurally, gives meaningful feedback, and helps users build understanding one step at a time — all from a single, portable HTML file.
+Unlike traditional math solvers that only provide final answers, **Math-In-Step** focuses on learning through steps.
+It interprets student answers structurally, gives meaningful feedback for error in math expression, and helps users build understanding one step at a time — all from a single, portable HTML file.
 
 Ideal for:
-Educators distributing math activities without worrying about installations
+Educators distributing math activities without worrying about installations or worrying about compatible devices
 
 Students practicing symbolic algebra in any modern browser
 
@@ -31,10 +31,10 @@ Developers experimenting with PyScript-based symbolic reasoning tools
 
 Use **createproblem.html** to start creating math problem
 
-Use **solveproblem.html** to let student working on math problem
+Use **solveproblem.html** to let student works on math problems
 
-Use **analytics.html** to start analyzing student submission
+Use **analytics.html** to start analyzing student submissions
 
-Open it in Windows, in MacOS, in Linux, in Android, in iOS and in any operating system that supports modern browser
+Run it in Windows, in MacOS, in Linux, in Android, in iOS and in any operating system that supports modern browser
 
 Start solving — no setup required!

@@ -49,3 +49,10 @@ this tool was developed to support mathematics learning in schools and communiti
 
 We gratefully acknowledge the support from UMB and all participating faculty, staff, and students.
 
+<p align="center">
+  <a href="https://www.mercubuana.ac.id/" target="_blank">
+    <img src="assets/logo/umb-logo.png" alt="Universitas Mercu Buana Logo" width="180">
+  </a>
+</p>
+
+

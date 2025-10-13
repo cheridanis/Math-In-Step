@@ -21,7 +21,9 @@ Students practicing symbolic algebra in any modern browser
 Developers experimenting with PyScript-based symbolic reasoning tools
 
 🚀 Try It
-
+Use **createproblem.html** to start creating math problem
+Use **solveproblem.html** to let student working on math problem
+Use **analytics.html** to start analyzing student submission
 Open it in any modern browser
 
 Start solving — no setup required!

@@ -23,7 +23,7 @@ It interprets student answers structurally, gives meaningful feedback for error 
 Ideal for:
 Educators distributing math activities without worrying about installations or worrying about compatible devices
 
-Students practicing symbolic algebra in any modern browser
+Students practicing symbolic algebra, including matrix operation, in any modern browser
 
 Developers experimenting with PyScript-based symbolic reasoning tools
 

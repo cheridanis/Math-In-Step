@@ -1,0 +1,1738 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Problem Creator — MathQuill + PyScript (export structure fixed)</title>
+
+  <!-- MathQuill CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
+
+  <!-- MathJax -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <!-- PyScript -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <style>
+  body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    max-width: 1100px;
+    margin: 20px auto;
+    background: #f3f6fb;
+    padding: 16px;
+    color: #0b1020;
+  }
+
+  header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #0b6efd;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(11, 110, 253, 0.3);
+  }
+
+  .btn.ghost {
+    background: transparent;
+    color: #0b6efd;
+    border: 1px solid #dbe9ff;
+  }
+
+  .btn.ghost:hover {
+    background: rgba(11, 110, 253, 0.05);
+  }
+
+  .panel {
+    background: #fff;
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(11, 20, 40, 0.06);
+    margin-bottom: 12px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .editable {
+    min-height: 70px;
+    border: 2px solid #e6eef8;
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .step {
+    border: 2px solid #e6eef8;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+  }
+
+  .math-input {
+    min-height: 36px;
+    border: 2px solid #e6eef8;
+    border-radius: 8px;
+    padding: 6px;
+    background: #fff;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .math-inline {
+    display: inline-block;
+    min-width: 40px;
+    margin: 0 3px;
+    vertical-align: middle;
+  }
+
+  .img-inline {
+    display: inline-block;
+    max-width: 160px;
+    max-height: 120px;
+    margin: 4px;
+    vertical-align: middle;
+  }
+
+  .jsonbox {
+    background: #0b1220;
+    color: #cfeaff;
+    padding: 8px;
+    border-radius: 8px;
+    max-height: 260px;
+    overflow: auto;
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  /* ✅ Stronger borders and states */
+  .input-valid {
+    border-color: #22c55e !important; /* green */
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  }
+
+  .input-invalid {
+    border-color: #ef4444 !important; /* red */
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+
+  .input-empty {
+    border-color: #f59e0b !important; /* orange */
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  }
+
+  .problem {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .problem-header {
+    padding: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f0f4ff;
+    border-radius: 8px;
+  }
+
+  .problem-header:hover {
+    background: #dbeafe;
+  }
+
+  .problem-body {
+    padding: 12px;
+    display: block;
+  }
+
+  .problem-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  /* Overlay */
+  #loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(59, 130, 246, 0.3);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-text {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  #loadingStatus {
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #cbd5e1;
+    max-height: 200px;
+    overflow: auto;
+    width: 90%;
+  }
+</style>
+
+</head>
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Initializing Problem Creator...</div>
+    <div id="loadingStatus"><div>⏳ Starting up...</div></div>
+  </div>
+
+  <header>
+    <h1>📝 Problem Creator</h1>
+  </header>
+
+  <div class="panel">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">Problem Set Creator</h3>
+    <div style="display:flex; gap:8px;">
+      <button id="addProblemBtn" class="btn">➕ Create Additional Problem</button>
+      <button id="exportAllBtn" class="btn ghost">📤 Share Problem Set to Students</button>
+      <button id="importProblemBtn" class="btn ghost">📥 Load Problem Set</button>
+      <button id="downloadJsonBtn" class="btn ghost">💾 Save Problem Set</button>
+      <button id="clearAutosaveBtn" class="btn ghost" style="color:#dc2626;">🗑️ Clear Autosave</button>
+    </div>
+  </div>
+
+  <div id="problemsContainer" style="margin-top:16px;"></div>
+
+  <!-- ADD THIS SECTION: Problem Set Description -->
+  <div style="margin-top:16px; margin-bottom:16px;">
+    <label>Problem Set Description</label>
+    <input id="problemSetDescription" type="text" 
+           style="background:#f5eac3;width:100%; padding:8px; border:1px solid #0ea5e9; border-radius:6px; font-size:14px;"
+           placeholder="Enter a description for this problem set...">
+    <div class="small" style="margin-top:4px;">This description will be included when sharing the problem set with students.</div>
+  </div>
+  <div style="margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <label>Problem Set UUID</label>
+      <button id="copyUuidBtn" class="btn ghost" style="font-size:12px; padding:4px 8px;">📋 Copy UUID</button>
+    </div>
+    <div id="problemSetUuid" style="background:#f0f9ff; border:1px solid #0ea5e9; padding:8px; border-radius:6px; font-family:monospace; font-size:13px; color:#0369a1; margin-bottom:12px;">
+      No problem set loaded
+    </div>
+    <label>Exported JSON (Base64 compressed)</label>
+    <pre id="exportedJson" class="jsonbox">[]</pre>
+  </div>
+</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+  <py-config>
+    packages = ["sympy", "lark", "brotli"]
+  </py-config>
+
+<script type="py">
+from pyscript import document, window
+from pyodide.ffi import create_proxy
+import json, base64, brotli, html, re
+import sympy as sp
+from lark import Lark, Transformer, v_args
+import uuid
+
+# ============================================================================
+# CORE CLASSES
+# ============================================================================
+
+class MathParser:
+    """Handles LaTeX parsing, structural comparison, and error popups"""
+
+    GRAMMAR = r"""
+    start: matrix_ops
+         | expr
+
+    ?expr: sum
+
+    ?sum: sum "+" product   -> add
+        | sum "-" product   -> sub
+        | product
+
+    ?product: scalar matrix                 -> scalar_matrix_mul
+            | scalar matrix_env             -> scalar_matrix_mul
+            | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
+            | product "/" implicit                                      -> div
+            | implicit
+
+    ?implicit: implicit power        -> implicit_mul
+             | power
+
+    ?power: "-" power                -> neg
+          | atom "^" power           -> power
+          | atom
+
+    ?atom: NUMBER                    -> number
+         | SYMBOL                    -> symbol
+         | derivative
+         | matrix
+         | matrix_env
+         | "(" expr ")"
+         | "\\left(" expr "\\right)"
+         | row_op
+
+    scalar: NUMBER | SYMBOL
+
+    derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
+              | "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "\\left(" expr "\\right)" -> derivative_dx_left
+
+    matrix: "[" matrix_rows "]" -> matrix_rows
+    matrix_rows: row ("," row)* -> matrix_rows
+    row: "[" elements "]" -> row
+    elements: expr ("," expr)* -> elements
+
+    matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
+
+    matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
+    matrix_env_row: expr ( "&" expr )*
+
+    matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
+
+    row_op: "R_" INT arrow row_expr                 -> row_replace
+          | "R_" INT swap_arrow "R_" INT            -> row_swap
+
+    arrow: "\\to" | "\\leftarrow"
+    swap_arrow: "\\leftrightarrow"
+
+    row_expr: "R_" INT                     -> row_reference
+             | expr "R_" INT               -> row_scale
+             | "R_" INT op expr "R_" INT   -> row_combine
+
+    op: "+" | "-"
+
+    NUMBER: /[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/
+    SYMBOL: /\\?[a-zA-Z][a-zA-Z0-9_]*/
+    INT: /[0-9]+/
+
+    %import common.WS_INLINE
+    %ignore WS_INLINE
+    """
+
+    def __init__(self):
+        from lark import Lark
+        self.update_status("⏳ Building parser...")
+        self.parser = Lark(self.GRAMMAR, parser="earley", start="start")
+        self.transformer = self._create_transformer()
+        self.update_status("✓ Parser ready")
+
+    def update_status(self, msg):
+        container = document.querySelector("#loadingStatus")
+        if container:
+            div = document.createElement("div")
+            div.appendChild(document.createTextNode(msg))
+            container.appendChild(div)
+
+    # -----------------------------------------------------
+    # ✅ Parse LaTeX to Sympy with popup error display
+    # -----------------------------------------------------
+    def parse_latex(self, tex):
+        """Parse LaTeX string to SymPy expression with error popups"""
+        import re
+        from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
+
+        t = self.clean_latex(tex)
+        try:
+            tree = self.parser.parse(t)
+            result = self.transformer.transform(tree)
+            return result
+
+        except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
+            pos = getattr(e, "pos_in_stream", None)
+            line = getattr(e, "line", "?")
+            col = getattr(e, "column", "?")
+
+            # Remove “Expected …” section from Lark message
+            raw_msg = str(e)
+            simplified_msg = re.sub(r"Expected one of:.*", "", raw_msg, flags=re.DOTALL).strip()
+
+            # Build context with caret
+            try:
+                span = 35
+                start = max(0, (pos or 0) - span)
+                end = min(len(t), (pos or 0) + span)
+                snippet = t[start:end]
+                caret_pos = (pos or 0) - start
+                caret_line = " " * caret_pos + "↑"
+                context = f"{snippet}\n{caret_line}"
+            except Exception:
+                context = t
+
+            msg = (
+                f"❌ Parse error in LaTeX:\n\n"
+                f"Line: {line}, Column: {col}\n"
+                f"Type: {type(e).__name__}\n"
+                f"Message: {simplified_msg}\n\n"
+                f"Context:\n{context}"
+            )
+            self._show_error_popup(msg)
+            window.console.error(msg)
+            return None
+
+        except Exception as e:
+            msg = f"❌ General parse error: {e}"
+            window.console.error(msg)
+            self._show_error_popup(msg)
+            return None
+
+    # -----------------------------------------------------
+    # ✅ Popup with top-right close button
+    # -----------------------------------------------------
+    def _show_error_popup(self, message):
+        safe_msg = message.replace("`", "'").replace("\\", "\\\\").replace("\n", "\\n")
+        js_code = f"""
+            (function(){{
+                let existing = document.querySelector('#parseErrorPopup');
+                if(existing) existing.remove();
+
+                let popup = document.createElement('div');
+                popup.id = 'parseErrorPopup';
+                popup.style.cssText = `
+                    position:fixed;
+                    top:50%;
+                    left:50%;
+                    transform:translate(-50%, -50%);
+                    background:#f8fafc;
+                    color:#0f172a;
+                    font-family:monospace;
+                    padding:24px 24px 16px 24px;
+                    border:2px solid #ef4444;
+                    border-radius:12px;
+                    box-shadow:0 12px 40px rgba(0,0,0,0.2);
+                    white-space:pre;
+                    z-index:9999;
+                    max-width:650px;
+                    max-height:70vh;
+                    overflow:auto;
+                `;
+
+                let btn = document.createElement('button');
+                btn.textContent = '✖';
+                btn.title = 'Close';
+                btn.style.cssText = `
+                    position:absolute;
+                    top:8px;
+                    right:10px;
+                    border:none;
+                    background:transparent;
+                    color:#ef4444;
+                    font-size:18px;
+                    font-weight:bold;
+                    cursor:pointer;
+                    line-height:1;
+                `;
+                btn.onclick = () => popup.remove();
+
+                let content = document.createElement('div');
+                content.textContent = `{safe_msg}`;
+                content.style.paddingTop = '8px';
+
+                popup.appendChild(btn);
+                popup.appendChild(content);
+                document.body.appendChild(popup);
+            }})();
+        """
+        window.eval(js_code)
+
+    # -----------------------------------------------------
+    # ✅ Clean LaTeX
+    # -----------------------------------------------------
+    def clean_latex(self, tex):
+        """Normalize LaTeX string for parsing by removing spaces and macros"""
+        import re
+        if not tex:
+            return ""
+        t = (
+            str(tex)
+            .replace("\\left", "")
+            .replace("\\right", "")
+            .replace("\\mathrm{d}", "d")
+        )
+        # Remove spacing macros and whitespace
+        t = re.sub(r"\\\\(?:,|;|:|!|quad|qquad| )", "", t)
+        t = re.sub(r"\s+", "", t)
+        return t.strip()
+
+    # -----------------------------------------------------
+    # ✅ Transformer creation
+    # -----------------------------------------------------
+    def _create_transformer(self):
+        from lark import Transformer, v_args
+        import sympy as sp
+
+        @v_args(inline=True)
+        class Latex2Sympy(Transformer):
+            def number(self, tok):
+                s = str(tok)
+                return sp.Integer(s) if '.' not in s else sp.Float(s)
+            def symbol(self, tok):
+                s = str(tok).strip()
+                return sp.Symbol(s[1:] if s.startswith("\\") else s)
+            def neg(self, v): return sp.Mul(-1, v, evaluate=False)
+            def add(self, a, b): return sp.Add(a, b, evaluate=False)
+            def sub(self, a, b): return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
+            def mul(self, a, b):
+                if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) or isinstance(b, (sp.MatrixBase, sp.MatrixExpr)):
+                    a_ = sp.UnevaluatedExpr(a) if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) else a
+                    b_ = sp.UnevaluatedExpr(b) if isinstance(b, (sp.MatrixBase, sp.MatrixExpr)) else b
+                    return sp.Mul(a_, b_, evaluate=False)
+                return sp.Mul(a, b, evaluate=True)
+            def div(self, a, b): return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
+            def implicit_mul(self, a, b):
+                if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
+                    return sp.Mul(a, b, evaluate=False)
+                return sp.Mul(a, b, evaluate=False)
+            def power(self, a, b=None): return sp.Pow(a, b, evaluate=False) if b else a
+            def derivative_dx_paren(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
+            def derivative_dx_left(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
+            def elements(self, *items): return list(items)
+            def row(self, elements): return list(elements) if isinstance(elements, (list, tuple)) else [elements]
+            def matrix_rows(self, *rows):
+                row_list = [list(r) if isinstance(r, (list, tuple)) else [r] for r in rows]
+                return sp.Matrix(row_list)
+            def matrix_env(self, *args):
+                rows = []
+                for a in args:
+                    if a is None: continue
+                    if isinstance(a, list) and a and all(isinstance(x, (list, tuple)) for x in a):
+                        rows.extend([list(r) for r in a])
+                    elif isinstance(a, (list, tuple)): rows.append(list(a))
+                    else: rows.append([a])
+                return sp.Matrix(rows)
+            def start(self, e): return e
+
+        return Latex2Sympy()
+
+    # -----------------------------------------------------
+    # ✅ Extract structure, normalize, and compare
+    # -----------------------------------------------------
+    def extract_structure(self, expr):
+        """Extract structural fingerprint of expression"""
+        import sympy as sp, traceback
+        operators, operands = {}, {}
+
+        def process(node, parent_op=None):
+            if node is None:
+                return
+            if isinstance(node, (tuple, list)) and all(isinstance(i, sp.Integer) for i in node):
+                return
+            if isinstance(node, sp.MatrixBase):
+                for el in node:
+                    process(el, parent_op)
+                return
+            if isinstance(node, sp.MatrixExpr) and not isinstance(node, sp.MatrixBase):
+                operands[str(node)] = operands.get(str(node), 0) + 1
+                return
+            if hasattr(node, "args") and len(node.args) > 0:
+                op_name = type(node).__name__
+                if op_name == "Tuple":
+                    for c in node.args:
+                        process(c, parent_op)
+                    return
+                if not (op_name == "Mul" and (parent_op == "Mul" or len(node.args) == 1)):
+                    operators[op_name] = operators.get(op_name, 0) + 1
+                for c in node.args:
+                    process(c, op_name)
+                return
+            val = str(node).strip().replace(" ", "")
+            if val == "-1":
+                return
+            operands[val] = operands.get(val, 0) + 1
+
+        try:
+            process(expr)
+        except Exception as e:
+            window.console.log(f"extract_structure error: {e}")
+            window.console.log(traceback.format_exc())
+
+        return {"operators": operators, "operands": operands,
+                "total_ops": sum(operators.values()),
+                "total_operands": sum(operands.values())}
+
+    def normalize_expr(self, expr):
+        """Normalize and simplify expressions"""
+        import sympy as sp
+        if expr is None:
+            return None
+        try:
+            if hasattr(expr, "doit"):
+                expr = expr.doit()
+            if isinstance(expr, list):
+                expr = sp.Matrix(expr)
+            if isinstance(expr, sp.Matrix):
+                expr = expr.applyfunc(sp.simplify)
+            else:
+                if isinstance(expr, sp.Mul) and not expr.is_Number:
+                    args = expr.args
+                    has_matrix = any(isinstance(a, sp.Matrix) for a in args)
+                    has_scalar = any(not isinstance(a, sp.Matrix) for a in args)
+                    if has_matrix and has_scalar:
+                        return sp.Mul(*args, evaluate=True)
+                expr = sp.simplify(expr)
+        except:
+            pass
+        return expr
+
+    def final_eq(self, a, b):
+        """Check equality for scalar or matrix expressions"""
+        import sympy as sp
+        try:
+            if isinstance(a, sp.MatrixBase) and isinstance(b, sp.MatrixBase):
+                if a.shape != b.shape:
+                    return False
+                for i in range(a.rows):
+                    for j in range(a.cols):
+                        if not sp.simplify(a[i, j] - b[i, j]) == 0:
+                            return False
+                return True
+            if isinstance(a, sp.MatrixBase) and isinstance(b, list):
+                return self.final_eq(a, sp.Matrix(b))
+            if isinstance(b, sp.MatrixBase) and isinstance(a, list):
+                return self.final_eq(sp.Matrix(a), b)
+            return sp.simplify(a - b) == 0
+        except:
+            try:
+                return a.equals(b)
+            except:
+                return False
+
+class Step:
+    """Represents a single step in a problem (animated feedback + structure checking + autosave support)"""
+    
+    def __init__(self, container, step_index, math_parser):
+        self.container = container
+        self.step_index = step_index
+        self.math_parser = math_parser
+        self.dom_element = None
+        self.description_el = None
+        self.expr_mf = None
+        self.expected_mf = None
+        self.user_mf = None
+        self.feedback_el = None
+        self.parse_preview_el = None
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Create the UI for this step"""
+        wrapper = document.createElement("div")
+        wrapper.className = "step"
+        wrapper.innerHTML = f"""
+          <div style="display:flex;justify-content:space-between;">
+            <strong>Step {self.step_index}</strong>
+            <button class="btn ghost removeStep">Remove</button>
+          </div>
+          <label style="margin-top:8px;">Description</label>
+          <div class="toolbar">
+            <button class="btn ghost insertMath">➕ Math</button>
+            <button class="btn ghost insertImage">🖼 Image</button>
+          </div>
+          <div class="editable step-desc" contenteditable="true"></div>
+
+          <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:280px;">
+              <label>Expression</label>
+              <div class="math-input step-expr" style="transition:box-shadow 0.4s, border-color 0.4s;"></div>
+            </div>
+            <div style="flex:1; min-width:280px;">
+              <label>Expected Answer</label>
+              <div class="math-input step-expected" style="transition:box-shadow 0.4s, border-color 0.4s;"></div>
+            </div>
+            <div style="flex:1; min-width:280px; position:relative;">
+              <label>User Answer (Simulation)</label>
+              <div class="math-input step-user" style="transition:box-shadow 0.4s, border-color 0.4s;"></div>
+              <div class="user-feedback" 
+                   style="position:absolute; top:6px; right:8px; font-weight:600; font-size:13px; color:#64748b;">
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn ghost generateAnswer" style="font-size:12px;">Generate Answer</button>
+            <button class="btn ghost checkExpected" style="font-size:12px;">Check Expected</button>
+            <button class="btn ghost checkUser" style="font-size:12px;">Check User Answer</button>
+            <button class="btn ghost checkParse" style="font-size:12px;">Preview Parse</button>
+          </div>
+
+          <div style="margin-top:8px;">
+            <div class="small parsePreview" style="margin-top:6px; white-space:pre-wrap;"></div>
+          </div>
+        """
+        self.container.appendChild(wrapper)
+        self.dom_element = wrapper
+        
+        self.description_el = wrapper.querySelector(".step-desc")
+        self.parse_preview_el = wrapper.querySelector(".parsePreview")
+        self.feedback_el = wrapper.querySelector(".user-feedback")
+        
+        self._init_math_fields()
+        self._wire_events()
+    
+    def _init_math_fields(self):
+        ensure_mq()
+        self.expr_mf = create_math_field(self.dom_element.querySelector(".step-expr"))
+        self.expected_mf = create_math_field(self.dom_element.querySelector(".step-expected"))
+        self.user_mf = create_math_field(self.dom_element.querySelector(".step-user"))
+    
+    def _wire_events(self):
+        self.dom_element.querySelector(".insertMath").addEventListener("click", create_proxy(lambda e: insert_math(self.description_el)))
+        self.dom_element.querySelector(".insertImage").addEventListener("click", create_proxy(lambda e: insert_image(self.description_el)))
+        self.dom_element.querySelector(".removeStep").addEventListener("click", create_proxy(self._remove_step))
+        self.dom_element.querySelector(".generateAnswer").addEventListener("click", create_proxy(self._generate_answer))
+        self.dom_element.querySelector(".checkExpected").addEventListener("click", create_proxy(self._check_expected))
+        self.dom_element.querySelector(".checkParse").addEventListener("click", create_proxy(self._preview_parse))
+        self.dom_element.querySelector(".checkUser").addEventListener("click", create_proxy(self._check_user_answer))
+
+    # ---------------------------------------------------------
+    # 🔆 Visual Feedback Helpers
+    # ---------------------------------------------------------
+
+    def _animate_glow(self, element, color):
+        """Temporary glowing border animation for visual feedback"""
+        element.style.boxShadow = f"0 0 12px {color}"
+        element.style.borderColor = color
+        window.setTimeout(create_proxy(lambda: (
+            element.style.setProperty("box-shadow", "0 0 0 transparent"),
+            element.style.setProperty("border-color", "#e6eef8")
+        )), 1200)
+
+    def _show_feedback(self, state, text=None):
+        """Show inline badge feedback"""
+        if state == "correct":
+            self.feedback_el.style.color = "#16a34a"
+            self.feedback_el.textContent = text or "✅ Correct"
+            self._animate_glow(self.dom_element.querySelector(".step-user"), "#16a34a")
+        elif state == "wrong":
+            self.feedback_el.style.color = "#dc2626"
+            self.feedback_el.textContent = text or "❌ Wrong"
+            self._animate_glow(self.dom_element.querySelector(".step-user"), "#dc2626")
+        elif state == "warn":
+            self.feedback_el.style.color = "#ca8a04"
+            self.feedback_el.textContent = text or "⚠️ Check"
+            self._animate_glow(self.dom_element.querySelector(".step-user"), "#ca8a04")
+        else:
+            self.feedback_el.textContent = ""
+            self.feedback_el.style.color = "#64748b"
+
+    # ---------------------------------------------------------
+    # 🧮 Core Step Logic
+    # ---------------------------------------------------------
+
+    def _remove_step(self, e):
+        self.dom_element.remove()
+        if hasattr(window, 'problem_creator'):
+            window.problem_creator.data_manager.save_to_storage()
+    
+    def _generate_answer(self, e):
+        self.parse_preview_el.innerText = ""
+        tex = self.expr_mf.latex().strip() if self.expr_mf else ""
+        if not tex:
+            self.parse_preview_el.innerText = "⚠️ Please enter an expression first."
+            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#ca8a04")
+            return
+        
+        try:
+            parsed = self.math_parser.parse_latex(tex)
+            if parsed:
+                result = self.math_parser.normalize_expr(parsed)
+                if isinstance(result, sp.Matrix):
+                    pretty = json.dumps(result.tolist(), indent=2)
+                    self.expected_mf.latex(f"\\text{{{pretty}}}")
+                    self.parse_preview_el.innerText = f"✅ Matrix Result:\n{pretty}"
+                else:
+                    latex_result = sp.latex(result)
+                    self.expected_mf.latex(latex_result)
+                    self.parse_preview_el.innerText = f"✅ Simplified Result:\n{result}"
+                    self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
+        except Exception as ex:
+            self.parse_preview_el.innerText = f"❌ Error generating: {ex}"
+            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+        
+        if hasattr(window, 'problem_creator'):
+            window.problem_creator.data_manager.save_to_storage()
+    
+    def _check_expected(self, e):
+        """Compare Expression vs Expected Answer, including structure"""
+        self.parse_preview_el.innerText = ""
+        try:
+            expr_tex = self.expr_mf.latex().strip() if self.expr_mf else ""
+            exp_tex  = self.expected_mf.latex().strip() if self.expected_mf else ""
+            if not expr_tex:
+                self.parse_preview_el.innerText = "⚠️ Enter expression first."
+                self._animate_glow(self.dom_element.querySelector(".step-expr"), "#ca8a04")
+                return
+
+            expr_val = self.math_parser.parse_latex(expr_tex)
+            exp_val  = self.math_parser.parse_latex(exp_tex)
+            if expr_val is None or exp_val is None:
+                self.parse_preview_el.innerText = "❌ Could not parse one or both sides."
+                return
+
+            expr_struct = self.math_parser.extract_structure(expr_val)
+            exp_struct  = self.math_parser.extract_structure(exp_val)
+            expr_norm = self.math_parser.normalize_expr(expr_val)
+            exp_norm  = self.math_parser.normalize_expr(exp_val)
+
+            if self.math_parser.final_eq(expr_norm, exp_norm):
+                msg = "✅ Expressions match!"
+                self._animate_glow(self.dom_element.querySelector(".step-expr"), "#16a34a")
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
+                if expr_struct == exp_struct:
+                    msg += "\n✅ Structures also match!"
+                else:
+                    msg += f"\n⚠️ Structure differs:\nExpression: {expr_struct}\nExpected: {exp_struct}"
+                    self._animate_glow(self.dom_element.querySelector(".step-expected"), "#ca8a04")
+            else:
+                msg = f"❌ Not equal.\nLeft: {expr_norm}\nRight: {exp_norm}"
+                self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+            self.parse_preview_el.innerText = msg
+        except Exception as ex:
+            self.parse_preview_el.innerText = f"❌ Error checking: {ex}"
+            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+
+    def _check_user_answer(self, e):
+        """Compare User Answer vs Expected Answer (value + structure)"""
+        self.parse_preview_el.innerText = ""
+        try:
+            user_tex = self.user_mf.latex().strip() if self.user_mf else ""
+            exp_tex  = self.expected_mf.latex().strip() if self.expected_mf else ""
+            if not user_tex:
+                self._show_feedback("warn", "⚠️ Empty")
+                return
+
+            user_val = self.math_parser.parse_latex(user_tex)
+            exp_val  = self.math_parser.parse_latex(exp_tex)
+            if user_val is None or exp_val is None:
+                self._show_feedback("warn", "⚠️ Parse Error")
+                return
+
+            user_struct = self.math_parser.extract_structure(user_val)
+            exp_struct  = self.math_parser.extract_structure(exp_val)
+            user_norm = self.math_parser.normalize_expr(user_val)
+            exp_norm  = self.math_parser.normalize_expr(exp_val)
+
+            if self.math_parser.final_eq(user_norm, exp_norm):
+                self._show_feedback("correct")
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
+                msg = "✅ User answer is correct!"
+                if user_struct == exp_struct:
+                    msg += "\n✅ Structure also matches!"
+                else:
+                    msg += f"\n⚠️ Structure differs:\nUser: {user_struct}\nExpected: {exp_struct}"
+                    self._animate_glow(self.dom_element.querySelector(".step-user"), "#ca8a04")
+                self.parse_preview_el.innerText = msg
+            else:
+                self._show_feedback("wrong")
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+                msg = f"❌ User answer not correct.\nUser: {user_norm}\nExpected: {exp_norm}"
+                self.parse_preview_el.innerText = msg
+        except Exception as ex:
+            self._show_feedback("warn", "⚠️ Error")
+            self.parse_preview_el.innerText = f"❌ Error comparing: {ex}"
+    
+    def _preview_parse(self, e):
+        self.parse_preview_el.innerText = ""
+        try:
+            tex = self.expr_mf.latex().strip() if self.expr_mf else ""
+            if not tex:
+                self.parse_preview_el.innerText = "⚠️ Enter expression to preview."
+                return
+            parsed = self.math_parser.parse_latex(tex)
+            if parsed:
+                self.parse_preview_el.innerText = f"Parsed expression:\n{parsed}\n\nSymPy repr:\n{sp.srepr(parsed)}"
+            else:
+                self.parse_preview_el.innerText = "❌ Could not parse expression"
+        except Exception as ex:
+            self.parse_preview_el.innerText = f"❌ Parse error: {ex}"
+
+    # ---------------------------------------------------------
+    # 🔄 Autosave Support
+    # ---------------------------------------------------------
+
+    def get_data(self):
+        return {
+            "description": serialize_content(self.description_el),
+            "expression": self.expr_mf.latex().strip() if self.expr_mf else "",
+            "expected": self.expected_mf.latex().strip() if self.expected_mf else "",
+            "user_answer": self.user_mf.latex().strip() if self.user_mf else "",
+        }
+
+    def load_data(self, data):
+        if self.description_el:
+            self.description_el.innerHTML = ""
+            for blk in data.get("description", []):
+                if blk.get("type") == "text":
+                    self.description_el.appendChild(document.createTextNode(blk.get("value","")))
+                elif blk.get("type") == "math":
+                    span = document.createElement("span")
+                    inner = document.createElement("span")
+                    span.className = "math-inline"
+                    span.appendChild(inner)
+                    self.description_el.appendChild(span)
+                    create_math_field(inner)
+                    MQ.MathField(inner).latex(blk.get("latex",""))
+                elif blk.get("type") == "image":
+                    img = document.createElement("img")
+                    img.className = "img-inline"
+                    img.src = blk.get("src","")
+                    self.description_el.appendChild(img)
+        if data.get("expression"):
+            self.expr_mf.latex(data["expression"])
+        if data.get("expected"):
+            self.expected_mf.latex(data["expected"])
+        if data.get("user_answer"):
+            self.user_mf.latex(data["user_answer"])
+
+class Problem:
+    """Represents a single problem with multiple steps"""
+    
+    def __init__(self, container, problem_index, math_parser):
+        self.container = container
+        self.problem_index = problem_index
+        self.math_parser = math_parser
+        self.dom_element = None
+        self.title_el = None
+        self.description_el = None
+        self.steps_container = None
+        self.steps = []
+        self._create_ui()
+    
+    def _create_ui(self):
+        """Create the UI for this problem"""
+        wrapper = document.createElement("div")
+        wrapper.className = "problem"
+        wrapper.innerHTML = f"""
+          <div class="problem-header">
+            <span>Problem {self.problem_index}</span>
+            <div class="problem-actions">
+              <button class="btn ghost duplicateProblem" style="padding:4px 8px; font-size:12px;">📋 Duplicate</button>
+              <button class="btn ghost removeProblem" style="padding:4px 8px; font-size:12px;">🗑️ Remove</button>
+            </div>
+          </div>
+          <div class="problem-body">
+            <label>Problem Title</label>
+            <input class="probTitle" style="width:100%; padding:6px; margin-bottom:6px;"/>
+            <label>Description</label>
+            <div class="toolbar">
+              <button class="btn ghost insertMath">➕ Math</button>
+              <button class="btn ghost insertImage">🖼 Image</button>
+              <button class="btn ghost clearDesc">Clear</button>
+            </div>
+            <div class="editable prob-desc" contenteditable="true"></div>
+            <div class="stepsContainer" style="margin-top:10px;"></div>
+            <button class="btn addStep">➕ Add Step</button>
+          </div>
+        """
+        self.container.appendChild(wrapper)
+        self.dom_element = wrapper
+        
+        # Store references
+        self.title_el = wrapper.querySelector(".probTitle")
+        self.description_el = wrapper.querySelector(".prob-desc")
+        self.steps_container = wrapper.querySelector(".stepsContainer")
+        
+        # Wire up events
+        self._wire_events()
+        
+        # Add initial step
+        self.add_step()
+    
+    def _wire_events(self):
+        """Wire up event handlers"""
+        # Header toggle
+        header = self.dom_element.querySelector(".problem-header")
+        body = self.dom_element.querySelector(".problem-body")
+        
+        def toggle_body(e):
+            if hasattr(e, 'target') and e.target.classList and (
+                e.target.classList.contains("removeProblem") or 
+                e.target.classList.contains("duplicateProblem") or 
+                e.target.classList.contains("problem-actions")
+            ):
+                return
+            body.style.setProperty("display", "none" if body.style.display == "block" else "block")
+        
+        header.addEventListener("click", create_proxy(toggle_body))
+        
+        # Remove problem
+        self.dom_element.querySelector(".removeProblem").addEventListener(
+            "click", create_proxy(self._remove_problem)
+        )
+        
+        # Duplicate problem
+        self.dom_element.querySelector(".duplicateProblem").addEventListener(
+            "click", create_proxy(self._duplicate_problem)
+        )
+        
+        # Description toolbar
+        self.dom_element.querySelector(".insertMath").addEventListener(
+            "click", create_proxy(lambda e: insert_math(self.description_el))
+        )
+        self.dom_element.querySelector(".insertImage").addEventListener(
+            "click", create_proxy(lambda e: insert_image(self.description_el))
+        )
+        self.dom_element.querySelector(".clearDesc").addEventListener(
+            "click", create_proxy(lambda e: setattr(self.description_el, 'innerHTML', ""))
+        )
+        
+        # Add step button
+        self.dom_element.querySelector(".addStep").addEventListener(
+            "click", create_proxy(lambda e: self.add_step())
+        )
+    
+    def _remove_problem(self, e):
+        """Remove this problem"""
+        e.stopPropagation()
+        if window.confirm(f"Remove Problem {self.problem_index}?"):
+            self.dom_element.remove()
+            # Remove from problems list
+            if hasattr(window, 'problem_creator'):
+                window.problem_creator.problems = [
+                    p for p in window.problem_creator.problems if p != self
+                ]
+                # Renumber remaining problems
+                for i, prob in enumerate(window.problem_creator.problems, start=1):
+                    prob.problem_index = i
+                    header_span = prob.dom_element.querySelector(".problem-header span")
+                    if header_span:
+                        header_span.textContent = f"Problem {i}"
+                # Trigger save
+                window.problem_creator.data_manager.save_to_storage()
+    
+    def _duplicate_problem(self, e):
+        """Duplicate this problem"""
+        e.stopPropagation()
+        
+        # Get current problem data
+        current_data = self.get_data()
+        
+        # Create new problem
+        if hasattr(window, 'problem_creator'):
+            window.problem_creator.add_problem()
+            new_problem = window.problem_creator.problems[-1]
+            
+            # Load data into new problem
+            new_problem.load_data({
+                "title": current_data.get("title", "") + " (Copy)",
+                "description": current_data.get("description", []),
+                "steps": current_data.get("steps", [])
+            })
+            
+            # Trigger save
+            window.problem_creator.data_manager.save_to_storage()
+            window.alert(f"✅ Problem duplicated successfully!")
+    
+    def add_step(self):
+        """Add a new step to this problem"""
+        step_index = len(self.steps) + 1
+        step = Step(self.steps_container, step_index, self.math_parser)
+        self.steps.append(step)
+        
+        # Trigger save
+        if hasattr(window, 'problem_creator'):
+            window.problem_creator.data_manager.save_to_storage()
+    
+    def get_data(self):
+        """Get problem data as dictionary"""
+        return {
+            "title": self.title_el.value.strip() if self.title_el else "",
+            "description": serialize_content(self.description_el),
+            "steps": [step.get_data() for step in self.steps]
+        }
+    
+    def load_data(self, data):
+        """Load problem data from dictionary"""
+        # Load title
+        if self.title_el and data.get("title"):
+            self.title_el.value = data["title"]
+        
+        # Load description
+        if self.description_el:
+            self.description_el.innerHTML = ""
+            for blk in data.get("description", []):
+                if blk.get("type") == "text":
+                    self.description_el.appendChild(document.createTextNode(blk.get("value","")))
+                elif blk.get("type") == "math":
+                    span = document.createElement("span")
+                    inner = document.createElement("span")
+                    span.className = "math-inline"
+                    span.appendChild(inner)
+                    self.description_el.appendChild(span)
+                    create_math_field(inner)
+                    try:
+                        MQ.MathField(inner).latex(blk.get("latex",""))
+                    except:
+                        inner.textContent = blk.get("latex","")
+                elif blk.get("type") == "image":
+                    img = document.createElement("img")
+                    img.className = "img-inline"
+                    img.src = blk.get("src","")
+                    self.description_el.appendChild(img)
+        
+        # Load steps
+        if self.steps_container:
+            self.steps_container.innerHTML = ""
+            self.steps = []
+            for step_data in data.get("steps", []):
+                step = Step(self.steps_container, len(self.steps) + 1, self.math_parser)
+                step.load_data(step_data)
+                self.steps.append(step)
+
+
+class DataManager:
+    """Handles data persistence, import, and export"""
+
+    STORAGE_KEY = "problem_creator_autosave_v1"
+
+    def __init__(self, problem_creator):
+        self.problem_creator = problem_creator
+
+    # -----------------------------------------------------
+    # ✅ Autosave
+    # -----------------------------------------------------
+    def save_to_storage(self):
+        """Save current state to localStorage"""
+        try:
+            desc_input = document.querySelector("#problemSetDescription")
+            problem_set_description = desc_input.value.strip() if desc_input else ""
+            problems = [problem.get_data() for problem in self.problem_creator.problems]
+
+            save_data = {
+                "problem_set_description": problem_set_description,
+                "problems": problems,
+            }
+
+            json_str = json.dumps(save_data)
+            compressed = brotli.compress(json_str.encode("utf-8"))
+            b64 = base64.b64encode(compressed).decode("utf-8")
+            window.localStorage.setItem(self.STORAGE_KEY, b64)
+            window.console.log("💾 Autosaved with description")
+        except Exception as e:
+            window.console.error(f"Autosave failed: {e}")
+
+    def load_from_storage(self):
+        """Load state from localStorage"""
+        try:
+            stored = window.localStorage.getItem(self.STORAGE_KEY)
+            if not stored:
+                return None
+            data = json.loads(brotli.decompress(base64.b64decode(stored)).decode("utf-8"))
+            desc_input = document.querySelector("#problemSetDescription")
+            if desc_input and data.get("problem_set_description"):
+                desc_input.value = data["problem_set_description"]
+            return data.get("problems", data)
+        except Exception as e:
+            window.console.error(f"Load autosave failed: {e}")
+            return None
+
+    def clear_autosave(self):
+        """Clear autosaved data"""
+        try:
+            window.localStorage.removeItem(self.STORAGE_KEY)
+            window.alert("Autosave cleared")
+        except:
+            window.alert("Failed to clear autosave")
+
+    # -----------------------------------------------------
+    # ✅ Export JSON (with validation + colored highlighting)
+    # -----------------------------------------------------
+    def export_json(self):
+        """Export all problems with validation and orange highlight for empty fields"""
+        math_parser = self.problem_creator.math_parser
+        problems = self.problem_creator.problems
+        invalid_entries = []
+
+        # Reset all prior highlight states
+        for prob in problems:
+            prob_desc_el = prob.dom_element.querySelector(".prob-desc")
+            if prob_desc_el:
+                prob_desc_el.classList.remove("input-empty", "input-invalid", "input-valid")
+            for step in prob.steps:
+                for sel in [".step-expr", ".step-expected", ".step-user", ".step-desc"]:
+                    el = step.dom_element.querySelector(sel)
+                    if el:
+                        el.classList.remove("input-empty", "input-invalid", "input-valid")
+
+        # Validation loop
+        for p_index, problem in enumerate(problems, start=1):
+            prob_desc_el = problem.dom_element.querySelector(".prob-desc")
+            desc_text = prob_desc_el.textContent.strip() if prob_desc_el else ""
+            if not desc_text:
+                invalid_entries.append(f"Problem {p_index}: description is empty")
+                if prob_desc_el:
+                    prob_desc_el.classList.add("input-empty")
+
+            for s_index, step in enumerate(problem.steps, start=1):
+                expr_tex = step.expr_mf.latex().strip() if step.expr_mf else ""
+                exp_tex = step.expected_mf.latex().strip() if step.expected_mf else ""
+
+                expr_el = step.dom_element.querySelector(".step-expr")
+                exp_el = step.dom_element.querySelector(".step-expected")
+                step_desc_el = step.dom_element.querySelector(".step-desc")
+
+                # Description empty
+                if step_desc_el and not step_desc_el.textContent.strip():
+                    invalid_entries.append(f"Problem {p_index}, Step {s_index}: step description empty")
+                    step_desc_el.classList.add("input-empty")
+
+                # Expression empty
+                if not expr_tex:
+                    invalid_entries.append(f"Problem {p_index}, Step {s_index}: expression empty")
+                    if expr_el:
+                        expr_el.classList.add("input-empty")
+                    continue
+
+                # Expected empty
+                if not exp_tex:
+                    invalid_entries.append(f"Problem {p_index}, Step {s_index}: expected answer empty")
+                    if exp_el:
+                        exp_el.classList.add("input-empty")
+                    continue
+
+                # Parse and validate
+                try:
+                    expr_val = math_parser.parse_latex(expr_tex)
+                    exp_val = math_parser.parse_latex(exp_tex)
+                    if expr_val is None or exp_val is None:
+                        invalid_entries.append(f"Problem {p_index}, Step {s_index}: could not parse expression or answer")
+                        expr_el.classList.add("input-invalid")
+                        exp_el.classList.add("input-invalid")
+                        continue
+
+                    expr_norm = math_parser.normalize_expr(expr_val)
+                    exp_norm = math_parser.normalize_expr(exp_val)
+
+                    if math_parser.final_eq(expr_norm, exp_norm):
+                        expr_el.classList.add("input-valid")
+                        exp_el.classList.add("input-valid")
+                    else:
+                        invalid_entries.append(f"Problem {p_index}, Step {s_index}: expression ≠ expected")
+                        expr_el.classList.add("input-invalid")
+                        exp_el.classList.add("input-invalid")
+
+                except Exception as e:
+                    invalid_entries.append(f"Problem {p_index}, Step {s_index}: {e}")
+                    expr_el.classList.add("input-invalid")
+                    exp_el.classList.add("input-invalid")
+
+        # If invalid entries found
+        if invalid_entries:
+            self._show_popup(
+                "⚠️ Export blocked",
+                "Some fields are empty or incorrect.\n\n🟧 Orange = Missing field\n🔴 Red = Incorrect answer\n\n"
+                + "\n".join(invalid_entries[:10])
+                + ("\n...and more." if len(invalid_entries) > 10 else "")
+            )
+            return
+
+        # All valid → proceed with export
+        desc_input = document.querySelector("#problemSetDescription")
+        problem_set_description = desc_input.value.strip() if desc_input else ""
+        if not problem_set_description:
+            problem_set_description = f"Problem Set {window.Date.new().toLocaleString()}"
+
+        problem_set_uuid = str(uuid.uuid4())
+        uuid_display = document.querySelector("#problemSetUuid")
+        if uuid_display:
+            uuid_display.textContent = problem_set_uuid
+            uuid_display.style.color = "#0369a1"
+
+        export_data = {
+            "problem_set_id": problem_set_uuid,
+            "problem_set_description": problem_set_description,
+            "problems": [p.get_data() for p in problems],
+            "metadata": {
+                "created": window.Date.new().toISOString(),
+                "version": "1.1",
+                "problem_count": len(problems),
+            },
+        }
+
+        json_str = json.dumps(export_data, indent=2)
+        try:
+            compressed = brotli.compress(json_str.encode("utf-8"))
+            b64 = base64.b64encode(compressed).decode("utf-8")
+        except Exception:
+            b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+
+        # Display & copy
+        document.querySelector("#exportedJson").innerText = b64
+        try:
+            window.navigator.clipboard.writeText(b64)
+            self._show_popup(
+                "✅ Export successful",
+                f"📝 {problem_set_description}\n📊 {len(problems)} problem(s)\n🔑 UUID: {problem_set_uuid}"
+            )
+        except:
+            self._show_popup(
+                "✅ Export successful (manual copy)",
+                f"{problem_set_description}\n{len(problems)} problem(s)\nUUID: {problem_set_uuid}"
+            )
+
+        # Flash green for success
+        for prob in problems:
+            prob_desc_el = prob.dom_element.querySelector(".prob-desc")
+            if prob_desc_el:
+                prob_desc_el.classList.add("input-valid")
+            for step in prob.steps:
+                for sel in [".step-expr", ".step-expected", ".step-user", ".step-desc"]:
+                    el = step.dom_element.querySelector(sel)
+                    if el:
+                        el.classList.add("input-valid")
+
+        # Remove highlight after 1.5 seconds
+        window.setTimeout(create_proxy(lambda: [
+            el.classList.remove("input-valid")
+            for prob in problems
+            for step in prob.steps
+            for el in [prob.dom_element.querySelector(".prob-desc")] +
+                      [step.dom_element.querySelector(sel) for sel in [".step-expr", ".step-expected", ".step-user", ".step-desc"]]
+            if el
+        ]), 1500)
+
+    # -----------------------------------------------------
+    # ✅ Download Exported JSON
+    # -----------------------------------------------------
+    def download_json(self):
+        """Download exported Base64 JSON as file"""
+        self.export_json()
+        blob = window.Blob.new([document.querySelector("#exportedJson").innerText], {"type": "text/plain"})
+        url = window.URL.createObjectURL(blob)
+        a = document.createElement("a")
+        a.href = url
+        a.download = "problems_export.txt"
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.setTimeout(create_proxy(lambda: window.URL.revokeObjectURL(url)), 1000)
+
+    # -----------------------------------------------------
+    # ✅ Import Problem Sets
+    # -----------------------------------------------------
+    def import_problem(self):
+        """Import problem set via pasted JSON or uploaded file"""
+        backdrop = document.createElement("div")
+        backdrop.style.cssText = (
+            "position:fixed;top:0;left:0;right:0;bottom:0;"
+            "background:rgba(0,0,0,0.6);z-index:1000;"
+            "display:flex;align-items:center;justify-content:center;"
+        )
+
+        modal = document.createElement("div")
+        modal.style.cssText = (
+            "background:#fff;border-radius:12px;padding:20px;"
+            "max-width:600px;width:90%;max-height:80vh;overflow-y:auto;"
+            "box-shadow:0 20px 60px rgba(0,0,0,0.3);"
+        )
+
+        modal.innerHTML = """
+            <h3 style='margin-top:0;color:#0b6efd;'>📥 Import Problem Set</h3>
+            <div style='margin-bottom:16px;'>
+                <label>Paste Base64 JSON</label>
+                <textarea id='importTextArea' style='width:100%;min-height:120px;padding:10px;border:1px solid #e6eef8;border-radius:8px;font-family:monospace;font-size:12px;'></textarea>
+            </div>
+            <div style='margin:10px 0;text-align:center;color:#94a3b8;'>— OR —</div>
+            <div style='margin-bottom:20px;'>
+                <label>Upload File</label>
+                <input type='file' id='importFileInput' accept='.txt,text/plain' style='width:100%;padding:10px;border:2px dashed #0b6efd;border-radius:8px;background:#f0f9ff;'/>
+            </div>
+            <div style='display:flex;gap:8px;justify-content:flex-end;'>
+                <button id='importCancelBtn' class='btn ghost'>Cancel</button>
+                <button id='importProcessBtn' class='btn'>Import</button>
+            </div>
+        """
+        backdrop.appendChild(modal)
+        document.body.appendChild(backdrop)
+
+        text_area = modal.querySelector("#importTextArea")
+        file_input = modal.querySelector("#importFileInput")
+
+        def close_modal():
+            backdrop.remove()
+
+        def process_import():
+            if file_input.files and file_input.files.length > 0:
+                self._process_file_import(file_input.files.item(0), close_modal)
+            elif text_area.value.strip():
+                self._process_text_import(text_area.value.strip(), close_modal)
+            else:
+                window.alert("Please paste JSON data or select a file to import.")
+
+        modal.querySelector("#importCancelBtn").addEventListener("click", create_proxy(lambda e: close_modal()))
+        modal.querySelector("#importProcessBtn").addEventListener("click", create_proxy(lambda e: process_import()))
+        backdrop.addEventListener("click", create_proxy(lambda e: close_modal() if e.target == backdrop else None))
+
+    def _process_text_import(self, raw_text, close_modal):
+        try:
+            cleaned = self._extract_base64_from_text(raw_text)
+            decompressed = brotli.decompress(base64.b64decode(cleaned)).decode("utf-8")
+            data = json.loads(decompressed)
+            self._import_problem_data(data)
+            close_modal()
+        except Exception as e:
+            window.alert(f"Import failed: {e}")
+
+    def _process_file_import(self, file, close_modal):
+        from js import FileReader
+        reader = FileReader.new()
+
+        def on_load(event):
+            try:
+                content = event.target.result
+                cleaned = self._extract_base64_from_text(content)
+                decompressed = brotli.decompress(base64.b64decode(cleaned)).decode("utf-8")
+                data = json.loads(decompressed)
+                self._import_problem_data(data)
+                close_modal()
+            except Exception as e:
+                window.alert(f"Import failed: {e}")
+
+        reader.onload = create_proxy(on_load)
+        reader.readAsText(file)
+
+    def _extract_base64_from_text(self, text):
+        import re
+        text = str(text).strip()
+        if "=== EXPORT" in text:
+            matches = re.findall(r"===.*?EXPORT.*?===(.*?)(?:===|$)", text, re.DOTALL)
+            if matches:
+                return re.sub(r"[\s\r\n]+", "", "".join(matches))
+        return re.sub(r"[\s\r\n]+", "", text)
+
+    def _import_problem_data(self, data):
+        if isinstance(data, dict) and "problems" in data:
+            problems = data["problems"]
+            description = data.get("problem_set_description", "")
+            uuid_str = data.get("problem_set_id", "")
+        else:
+            window.alert("Invalid problem data format")
+            return
+
+        if not window.confirm(f"Import Problem Set:\n📝 {description}\n📊 {len(problems)} problems\n🔑 {uuid_str[:8]+'...'}\n\nReplace current workspace?"):
+            return
+
+        desc_input = document.querySelector("#problemSetDescription")
+        if desc_input:
+            desc_input.value = description
+        uuid_display = document.querySelector("#problemSetUuid")
+        if uuid_display:
+            uuid_display.textContent = uuid_str
+
+        self.problem_creator.clear_all_problems()
+        for prob in problems:
+            self.problem_creator.add_problem()
+            self.problem_creator.problems[-1].load_data(prob)
+        self.save_to_storage()
+        window.alert("✅ Problem set imported successfully!")
+
+    # -----------------------------------------------------
+    # ✅ Popup
+    # -----------------------------------------------------
+    def _show_popup(self, title, message):
+        safe_title = title.replace("`", "'").replace("\\", "\\\\")
+        safe_message = message.replace("`", "'").replace("\\", "\\\\").replace("\n", "\\n")
+        js_code = f"""
+        (function(){{
+            let old = document.querySelector('#exportPopup');
+            if(old) old.remove();
+            let popup = document.createElement('div');
+            popup.id = 'exportPopup';
+            popup.style.cssText = `
+                position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+                background:#f8fafc;color:#0f172a;
+                border:2px solid #f59e0b;border-radius:12px;
+                padding:24px;max-width:480px;white-space:pre-wrap;
+                box-shadow:0 10px 30px rgba(0,0,0,0.2);z-index:9999;
+            `;
+            let btn = document.createElement('button');
+            btn.textContent='✖';btn.style.cssText=`
+                position:absolute;top:8px;right:10px;
+                border:none;background:transparent;color:#f59e0b;
+                font-size:18px;font-weight:bold;cursor:pointer;
+            `;
+            btn.onclick=()=>popup.remove();
+            let h=document.createElement('h3');
+            h.textContent='{safe_title}';
+            h.style.cssText='margin:0 0 10px 0;color:#0f172a;font-weight:700;';
+            let p=document.createElement('div');
+            p.textContent='{safe_message}';
+            p.style.cssText='font-family:monospace;font-size:13px;white-space:pre-wrap;';
+            popup.appendChild(btn);popup.appendChild(h);popup.appendChild(p);
+            document.body.appendChild(popup);
+        }})();
+        """
+        window.eval(js_code)
+
+class ProblemCreator:
+    """Main application class"""
+    
+    def __init__(self):
+        self.problems = []
+        self.math_parser = MathParser()
+        self.data_manager = DataManager(self)
+        self._init()
+    
+    def _init(self):
+        """Initialize the application"""
+        self.update_status("⏳ Wiring UI...")
+        ensure_mq()
+        
+        # Wire up main buttons
+        document.querySelector("#addProblemBtn").addEventListener(
+            "click", create_proxy(lambda e: self.add_problem())
+        )
+        document.querySelector("#importProblemBtn").addEventListener(
+            "click", create_proxy(lambda e: self.data_manager.import_problem())
+        )
+        document.querySelector("#exportAllBtn").addEventListener(
+            "click", create_proxy(lambda e: self.data_manager.export_json())
+        )
+        document.querySelector("#downloadJsonBtn").addEventListener(
+            "click", create_proxy(lambda e: self.data_manager.download_json())
+        )
+        document.querySelector("#clearAutosaveBtn").addEventListener(
+            "click", create_proxy(lambda e: self.data_manager.clear_autosave())
+        )
+        
+        # Wire up UUID copy button
+        copy_btn = document.querySelector("#copyUuidBtn")
+        if copy_btn:
+            copy_btn.addEventListener(
+                "click", create_proxy(self._copy_uuid)
+            )
+        
+        # Restore autosave if present
+        saved = self.data_manager.load_from_storage()
+        if saved and window.confirm("💾 Restore autosaved problems?"):
+            self._restore_saved_problems(saved)
+        
+        self.update_status("✓ Ready!")
+        
+        # Add initial problem if none exist
+        if len(self.problems) == 0:
+            window.setTimeout(create_proxy(lambda: self.add_problem()), 200)
+        
+        window.setTimeout(create_proxy(hide_loading), 600)
+    
+    def update_status(self, msg):
+        """Update loading status"""
+        self.math_parser.update_status(msg)
+    
+    def add_problem(self):
+        """Add a new problem"""
+        container = document.querySelector("#problemsContainer")
+        problem_index = len(self.problems) + 1
+        problem = Problem(container, problem_index, self.math_parser)
+        self.problems.append(problem)
+        self.data_manager.save_to_storage()
+    
+    def clear_all_problems(self):
+        """Clear all existing problems"""
+        container = document.querySelector("#problemsContainer")
+        container.innerHTML = ""
+        self.problems = []
+    
+    def _restore_saved_problems(self, saved):
+        """Restore problems from saved data"""
+        try:
+            for prob_data in saved:
+                self.add_problem()
+                last = self.problems[-1]
+                last.load_data(prob_data)
+        except Exception as e:
+            window.console.error(f"Failed to restore saved problems: {e}")
+    
+    def _copy_uuid(self, e):
+        """Copy problem set UUID to clipboard"""
+        uuid_display = document.querySelector("#problemSetUuid")
+        if uuid_display and uuid_display.textContent != "No problem set loaded":
+            try:
+                window.navigator.clipboard.writeText(uuid_display.textContent)
+                window.alert("📋 UUID copied to clipboard!")
+            except:
+                window.alert("Failed to copy UUID")
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def update_status(msg):
+    """Update loading status (global function for initialization)"""
+    container = document.querySelector("#loadingStatus")
+    if container:
+        div = document.createElement("div")
+        div.appendChild(document.createTextNode(msg))
+        container.appendChild(div)
+
+def ensure_mq():
+    """Ensure MathQuill is loaded"""
+    global MQ
+    if MQ is None:
+        if hasattr(window, 'MathQuill') and window.MathQuill:
+            MQ = window.MathQuill.getInterface(2)
+        else:
+            window.setTimeout(create_proxy(ensure_mq), 600)
+            return False
+    return True
+
+def create_math_field(el):
+    """Create a MathQuill math field"""
+    ensure_mq()
+    try:
+        mf = MQ.MathField(el, {"spaceBehavesLikeTab": True})
+        el.setAttribute("data-mq", "1")
+        return mf
+    except:
+        return None
+
+def insert_math(editable):
+    """Insert math field into editable element"""
+    span = document.createElement("span")
+    span.className = "math-inline"
+    inner = document.createElement("span")
+    span.appendChild(inner)
+    sel = window.getSelection()
+    if sel and sel.rangeCount:
+        sel.getRangeAt(0).insertNode(span)
+    else:
+        editable.appendChild(span)
+    create_math_field(inner)
+    if hasattr(window, 'problem_creator'):
+        window.problem_creator.data_manager.save_to_storage()
+
+def insert_image(editable):
+    """Insert image into editable element"""
+    url = window.prompt("Enter image URL:")
+    if url:
+        img = document.createElement("img")
+        img.className = "img-inline"
+        img.src = url.strip()
+        sel = window.getSelection()
+        if sel and sel.rangeCount:
+            sel.getRangeAt(0).insertNode(img)
+        else:
+            editable.appendChild(img)
+    if hasattr(window, 'problem_creator'):
+        window.problem_creator.data_manager.save_to_storage()
+
+def serialize_content(container):
+    """Serialize DOM content to blocks"""
+    blocks = []
+    def push_text(s):
+        if s == "": return
+        if blocks and blocks[-1]["type"] == "text":
+            blocks[-1]["value"] += s
+        else:
+            blocks.append({"type": "text", "value": s})
+    
+    for node in container.childNodes:
+        if node.nodeType == 3:
+            push_text(node.nodeValue)
+        else:
+            if node.tagName and node.tagName.lower() == "img":
+                blocks.append({"type": "image", "src": node.src})
+            else:
+                try:
+                    mq_el = node if node.getAttribute and node.getAttribute("data-mq") == "1" else node.querySelector and node.querySelector("[data-mq='1']")
+                except:
+                    mq_el = None
+                if mq_el:
+                    try:
+                        blocks.append({"type": "math", "latex": MQ.MathField(mq_el).latex()})
+                    except:
+                        blocks.append({"type": "math", "latex": mq_el.textContent or ""})
+                else:
+                    push_text(node.textContent or "")
+    return blocks
+
+def hide_loading():
+    """Hide loading overlay"""
+    overlay = document.querySelector("#loadingOverlay")
+    if overlay:
+        overlay.style.opacity = "0"
+        window.setTimeout(create_proxy(lambda: overlay.remove()), 400)
+
+# ============================================================================
+# INITIALIZATION
+# ============================================================================
+
+# Global MathQuill reference
+MQ = None
+
+# Initialize the application
+update_status("✓ PyScript loaded")
+update_status("⏳ Importing libraries...")
+
+# Create and store the main app instance
+window.problem_creator = ProblemCreator()
+
+</script>
+</body>
+</html>

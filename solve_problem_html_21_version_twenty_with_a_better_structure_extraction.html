@@ -1,0 +1,2988 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Problem Solver — MathQuill + PyScript</title>
+
+  <!-- External Libraries -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+  
+  <!-- PyScript with fallback -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+  <script>
+    // Load PyScript with fallback
+    function loadPyScript() {
+      const script = document.createElement('script');
+      script.src = 'https://pyscript.net/releases/2024.1.1/core.js';
+      script.type = 'module';
+      script.onload = () => console.log('✅ PyScript loaded');
+      script.onerror = () => {
+        console.log('⚠️ Primary PyScript failed, trying fallback...');
+        const fallback = document.createElement('script');
+        fallback.src = 'https://cdn.jsdelivr.net/npm/@pyscript/core@latest/dist/core.js';
+        fallback.type = 'module';
+        fallback.onload = () => console.log('✅ PyScript loaded from fallback');
+        document.head.appendChild(fallback);
+      };
+      document.head.appendChild(script);
+    }
+    loadPyScript();
+  </script>
+
+  <style>
+    /* Base Styles */
+    * { box-sizing: border-box; }
+    body { 
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+      margin: 0; 
+      padding: 0;
+      background: #f3f6fb; 
+      color: #0b1020; 
+      overflow-x: hidden;
+    }
+    
+    /* UI Mode Toggle */
+    .ui-mode-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1002;
+      display: flex;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .ui-mode-btn {
+      padding: 8px 16px;
+      border: none;
+      background: #f3f4f6;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .ui-mode-btn.active {
+      background: #0b6efd;
+      color: #fff;
+    }
+    
+    .ui-mode-btn:hover:not(.active) {
+      background: #e5e7eb;
+    }
+    
+    /* Mobile Mode Styles */
+    .mobile-mode #menuBtn {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 1001;
+      width: 48px;
+      height: 48px;
+      background: #0b6efd;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 12px rgba(11,110,253,0.4);
+      transition: all 0.3s ease;
+    }
+    
+    .mobile-mode #menuBtn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(11,110,253,0.5);
+    }
+    
+    .mobile-mode #menuBtn.hidden {
+      display: none;
+    }
+    
+    /* Sidebar */
+    .mobile-mode #sidebar {
+      position: fixed;
+      left: -320px;
+      top: 0;
+      width: 320px;
+      height: 100vh;
+      background: #fff;
+      box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+      z-index: 1000;
+      transition: left 0.3s ease;
+      overflow-y: auto;
+      padding: 72px 16px 16px 16px;
+    }
+    
+    .mobile-mode #sidebar.open {
+      left: 0;
+    }
+    
+    .mobile-mode #sidebarOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    .mobile-mode #sidebarOverlay.show {
+      display: block;
+    }
+    
+    /* Main Content */
+    .mobile-mode #mainContent {
+      transition: margin-left 0.3s ease, padding 0.3s ease;
+      min-height: 100vh;
+      padding: 16px;
+      font-size: 18px;
+    }
+    
+    .mobile-mode #mainContent.problems-loaded {
+      padding: 72px 12px 12px 12px;
+    }
+    
+    /* Desktop Mode */
+    .desktop-mode {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .desktop-mode #sidebar {
+      width: 320px;
+      min-height: 100vh;
+      background: #fff;
+      box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+      padding: 16px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    
+    .desktop-mode #mainContent {
+      flex: 1;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      font-size: 16px;
+    }
+    
+    .desktop-mode #menuBtn,
+    .desktop-mode #sidebarOverlay {
+      display: none !important;
+    }
+    
+    /* Navigation */
+    .nav-menu {
+      margin-bottom: 20px;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .nav-item:hover {
+      background: #f0f4ff;
+    }
+    
+    .nav-item.active {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    
+    .nav-icon {
+      margin-right: 12px;
+      font-size: 18px;
+    }
+    
+    /* Pages */
+    .page {
+      display: none;
+    }
+    
+    .page.active {
+      display: block;
+    }
+    
+    /* Common Components */
+    header h1 { 
+      margin: 0; 
+      font-size: 22px;
+    }
+    
+    .btn { 
+      padding: 10px 16px; 
+      border-radius: 8px; 
+      border: none; 
+      cursor: pointer; 
+      background: #0b6efd; 
+      color: #fff; 
+      font-size: 15px; 
+      font-weight: 500; 
+      transition: all 0.2s ease;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    
+    .btn:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 4px 12px rgba(11,110,253,0.3); 
+    }
+    
+    .btn.ghost { 
+      background: transparent; 
+      color: #0b6efd; 
+      border: 1px solid #dbe9ff; 
+    }
+    
+    .btn.ghost:hover { 
+      background: rgba(11,110,253,0.05); 
+    }
+    
+    .panel { 
+      background: #fff; 
+      padding: 16px; 
+      border-radius: 10px; 
+      box-shadow: 0 6px 20px rgba(11,20,40,0.06); 
+      margin-bottom: 16px; 
+    }
+    
+    label { 
+      display: block; 
+      font-weight: 600; 
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+    
+    .small { 
+      font-size: 14px; 
+      color: #546; 
+      line-height: 1.5;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #e6eef8;
+      font-size: 14px;
+      font-family: monospace;
+      resize: vertical;
+    }
+    
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #0b6efd;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      background: #f0f9ff;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    input[type="file"]:hover {
+      background: #dbeafe;
+      border-color: #1d4ed8;
+    }
+    
+    /* Problem Components */
+    .math-input { 
+      min-height: 44px; 
+      border: 2px solid #e6eef8; 
+      border-radius: 8px; 
+      padding: 10px; 
+      background: #fff;
+      font-size: 18px;
+    }
+    
+    .mobile-mode .math-input {
+      font-size: 20px;
+      min-height: 50px;
+    }
+    
+    .math-inline { 
+      display: inline-block; 
+      min-width: 40px; 
+      margin: 0 4px; 
+      vertical-align: middle;
+      font-size: 16px;
+    }
+    
+    .mobile-mode .math-inline {
+      font-size: 18px;
+    }
+    
+    /* Accordion */
+    .accordion-problem { 
+      border: 2px solid #e2e8f0; 
+      border-radius: 12px; 
+      margin-bottom: 16px; 
+      background: #ffffff; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+      overflow: hidden; 
+    }
+    
+    .accordion-problem.open { 
+      border-color: #3b82f6; 
+    }
+    
+    .accordion-problem.finished { 
+      border-color: #10b981; 
+      background: #f0fdf4; 
+    }
+    
+    .accordion-header { 
+      padding: 16px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      background: #f0f4ff; 
+      transition: background 0.2s ease;
+      font-size: 16px;
+      min-height: 60px;
+    }
+    
+    .mobile-mode .accordion-header {
+      font-size: 18px;
+      padding: 20px;
+      min-height: 70px;
+    }
+    
+    .accordion-header:hover { 
+      background: #dbeafe; 
+    }
+    
+    .accordion-body { 
+      max-height: 0; 
+      overflow: hidden; 
+      transition: max-height 0.3s ease-in-out; 
+      padding: 0 16px; 
+    }
+    
+    .mobile-mode .accordion-body {
+      padding: 0 20px;
+    }
+    
+    .accordion-problem.open .accordion-body { 
+      max-height: 10000px; 
+      padding: 16px; 
+    }
+    
+    .mobile-mode .accordion-problem.open .accordion-body {
+      padding: 20px;
+    }
+    
+    .progress-summary { 
+      font-size: 14px; 
+      color: #6b7280; 
+      font-weight: 600; 
+    }
+    
+    .mobile-mode .progress-summary {
+      font-size: 16px;
+    }
+    
+    /* Step styling */
+    .step {
+      padding: 16px;
+      font-size: 16px;
+    }
+    
+    .mobile-mode .step {
+      padding: 20px;
+      font-size: 18px;
+    }
+    
+    .step-description {
+      background: #f0fdf4;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .mobile-mode .step-description {
+      padding: 18px;
+      font-size: 18px;
+    }
+    
+    .step-feedback {
+      font-size: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    
+    .mobile-mode .step-feedback {
+      font-size: 17px;
+      padding: 14px;
+    }
+    
+    /* Loading */
+    #loadingOverlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0; 
+      background: rgba(15,23,42,0.95); 
+      z-index: 9999; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      color: #fff; 
+    }
+    
+    .spinner { 
+      width: 60px; 
+      height: 60px; 
+      border: 4px solid rgba(59,130,246,0.3); 
+      border-top-color: #3b82f6; 
+      border-radius: 50%; 
+      animation: spin 1s linear infinite; 
+      margin-bottom: 20px; 
+    }
+    
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+    
+    .loading-text { 
+      font-size: 18px; 
+      font-weight: 600; 
+    }
+    
+    .mobile-mode .loading-text {
+      font-size: 20px;
+    }
+    
+    #loadingStatus { 
+      margin-top: 16px; 
+      padding: 12px 20px; 
+      background: rgba(30,41,59,0.8); 
+      border-radius: 8px; 
+      font-family: monospace; 
+      font-size: 13px; 
+      color: #cbd5e1; 
+      max-height: 200px; 
+      overflow: auto; 
+      width: 90%; 
+    }
+    
+    .mobile-mode #loadingStatus {
+      font-size: 15px;
+    }
+    
+    /* Storage Indicator */
+    .storage-indicator { 
+      position: fixed; 
+      bottom: 16px; 
+      right: 16px; 
+      padding: 10px 14px; 
+      background: #10b981; 
+      color: #fff; 
+      border-radius: 8px; 
+      font-size: 13px; 
+      opacity: 0; 
+      transition: opacity 0.3s; 
+      pointer-events: none; 
+      z-index: 1000;
+      font-weight: 600;
+    }
+    
+    .mobile-mode .storage-indicator {
+      font-size: 15px;
+      padding: 12px 16px;
+    }
+    
+    .storage-indicator.show { 
+      opacity: 1; 
+    }
+    
+    /* Problem Set Info */
+    #problemSetInfo {
+      display: none;
+    }
+    
+    #currentProblemSetDescription {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #374151;
+      min-height: 20px;
+    }
+    
+    #currentProblemSetUuid {
+      background: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      padding: 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #0369a1;
+    }
+    
+    /* Telegram Export Modal */
+    .telegram-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      z-index: 1002;
+      padding: 20px;
+    }
+    
+    .telegram-modal h3 {
+      margin-top: 0;
+      color: #0088cc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .telegram-chunk {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    
+    .telegram-chunk-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .telegram-chunk-title {
+      font-weight: 700;
+      color: #334155;
+      font-size: 14px;
+    }
+    
+    .telegram-chunk-size {
+      font-size: 12px;
+      color: #64748b;
+      font-family: monospace;
+    }
+    
+    .telegram-chunk-content {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+      word-break: break-all;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    
+    .telegram-copy-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0088cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    
+    .telegram-copy-btn:hover {
+      background: #0077b3;
+      transform: translateY(-1px);
+    }
+    
+    .telegram-copy-btn.copied {
+      background: #10b981;
+    }
+    
+    .telegram-modal-close {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      padding: 10px 0;
+      margin-top: 16px;
+      border-top: 2px solid #e2e8f0;
+    }
+    
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1001;
+    }
+    
+    /* Responsive Theme Switching */
+    @media (min-width: 769px) {
+      body.mobile-mode {
+        display: flex !important;
+        min-height: 100vh !important;
+      }
+      
+      body.mobile-mode #menuBtn {
+        display: none !important;
+      }
+      
+      body.mobile-mode #sidebarOverlay {
+        display: none !important;
+      }
+      
+      body.mobile-mode #sidebar {
+        position: static !important;
+        left: 0 !important;
+        width: 320px !important;
+        min-height: 100vh !important;
+        background: #fff !important;
+        box-shadow: 4px 0 12px rgba(0,0,0,0.1) !important;
+        padding: 16px !important;
+        overflow-y: auto !important;
+        flex-shrink: 0 !important;
+      }
+      
+      body.mobile-mode #mainContent {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+        font-size: 16px !important;
+      }
+      
+      body.mobile-mode #mainHeader {
+        display: block !important;
+      }
+      
+      body.mobile-mode .ui-mode-toggle {
+        display: none !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .ui-mode-toggle {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="mobile-mode">
+  <!-- UI Mode Toggle -->
+  <div class="ui-mode-toggle">
+    <button style="display:none!important" class="ui-mode-btn active" data-mode="mobile">📱 Mobile</button>
+    <button style="display:none!important" class="ui-mode-btn" data-mode="desktop">🖥️ Desktop</button>
+  </div>
+
+  <!-- Storage Indicator -->
+  <div id="storageIndicator" class="storage-indicator">💾 Saved</div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Initializing Problem Solver...</div>
+    <div id="loadingStatus">
+      <div>⏳ Starting up...</div>
+    </div>
+  </div>
+
+  <!-- Hamburger Menu Button (Mobile only) -->
+  <button id="menuBtn" class="hidden">☰</button>
+  
+  <!-- Sidebar Overlay (Mobile only) -->
+  <div id="sidebarOverlay"></div>
+  
+  <!-- Sidebar Navigation -->
+  <div id="sidebar">
+        <!-- Problem Set Information Panel -->
+      <div id="problemSetInfo" class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            <div style="font-size:16px; font-weight:700; margin-bottom:4px;">Problem Set Information</div>
+            <div style="font-size:12px; color:#64748b;">Assignment details and identification</div>
+          </div>
+          <button style="display:none!important" id="copyProblemUuidBtn" class="btn ghost" style="font-size:12px; padding:4px 8px;">📋 Copy UUID</button>
+        </div>
+        
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px; font-weight:600; color:#374151; margin-bottom:4px; display:block;">Description</label>
+          <div id="currentProblemSetDescription">No problem set loaded</div>
+        </div>
+        
+        <div>
+          <label style="font-size:13px; font-weight:600; color:#374151; margin-bottom:4px; display:block;">Assignment UUID</label>
+          <div id="currentProblemSetUuid">No problem set loaded</div>
+        </div>
+      </div>
+      
+    <div class="nav-menu">
+      <div class="nav-item active" data-page="problems">
+        <span class="nav-icon">🧮</span>
+        <span>Problems</span>
+      </div>
+      <div class="nav-item" data-page="load">
+        <span class="nav-icon">📂</span>
+        <span>Load Problem Set</span>
+      </div>
+      <div class="nav-item" data-page="export-data">
+        <span class="nav-icon">📤</span>
+        <span>Export Progress</span>
+      </div>
+      <div class="nav-item" data-page="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div id="mainContent">
+    <!-- Header -->
+    <header id="mainHeader">
+      <h1>🧮 Problem Solver</h1>
+    </header>
+    
+    <!-- Problems Page -->
+    <div id="problemsPage" class="page active">
+
+      <!-- Initial Load Panel -->
+      <div id="initialLoadPanel" class="panel">
+        <h3>📂 Load Problem Set</h3>
+        <p>No problems loaded. Use the sidebar to load a problem set.</p>
+      </div>
+      
+      <!-- Problems Container -->
+      <div id="solveProblemsContainer"></div>
+    </div>
+    
+    <!-- Load Problem Set Page -->
+    <div id="loadPage" class="page">
+      <div class="panel">
+        <h3>📂 Load Problem Set</h3>
+        
+        <label>📎 Upload Problem File</label>
+        <div class="small" style="margin-bottom:8px;">Upload .txt file with problem JSON</div>
+        <input type="file" id="uploadFile" accept=".txt,text/plain" />
+        
+        <div style="text-align:center;margin:12px 0;color:#94a3b8;font-weight:600;font-size:13px;">— OR —</div>
+        
+        <label>📋 Paste Problem JSON</label>
+        <div class="small" style="margin-bottom:8px;">Paste base64-compressed JSON</div>
+        <textarea id="pasteJson"></textarea>
+        <button id="loadJsonBtn" class="btn">📂 Load Problems</button>
+        
+        <hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb;">
+        
+        <button id="resetSolveBtn" class="btn ghost">♻️ Reset Current</button>
+      </div>
+    </div>
+    
+    <!-- Export Progress Page -->
+    <div id="export-dataPage" class="page">
+      <div class="panel">
+        <h3>📤 Export Progress</h3>
+        <p>Export your progress to save or share your work.</p>
+        
+        <button id="exportProgressBtn" class="btn" style="background:#10b981;">📤 Export Progress</button>
+        <button id="exportTelegramBtn" class="btn" style="background:#0088cc;">✈️ Export to Telegram</button>
+      </div>
+    </div>
+    
+    <!-- Settings Page -->
+    <div id="settingsPage" class="page">
+      <div class="panel">
+        <h3>⚙️ Settings</h3>
+        <p>Configure your problem solver preferences.</p>
+        
+        <div style="margin-top:20px;">
+          <label>UI Mode</label>
+          <div style="display:flex; margin-top:8px;">
+            <button id="mobileModeBtn" class="btn" style="margin-right:8px;">📱 Mobile</button>
+            <button id="desktopModeBtn" class="btn">🖥️ Desktop</button>
+          </div>
+        </div>
+        
+        <div style="margin-top:20px;">
+          <label>Storage</label>
+          <button id="clearStorageBtn" class="btn ghost" style="background:#dc2626; color:#fff;">🗑️ Clear All Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PyScript Configuration -->
+  <py-config>
+    packages = ["sympy", "lark", "brotli"]
+  </py-config>
+
+  <!-- Python Script -->
+  <script type="py">
+from pyscript import document, window
+from pyodide.ffi import create_proxy
+import json, html, re, base64, uuid
+
+class MathParser:
+    """Handles parsing and evaluation of mathematical expressions"""
+    
+    GRAMMAR = r"""
+    start: matrix_ops
+         | expr
+
+    ?expr: sum
+    ?sum: sum "+" product   -> add
+        | sum "-" product   -> sub
+        | product
+    ?product: product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
+            | product "/" implicit                                      -> div
+            | implicit
+    ?implicit: implicit power        -> implicit_mul
+             | power
+    ?power: "-" power                -> neg
+          | atom "^" power           -> power
+          | atom
+    ?atom: NUMBER                    -> number
+         | SYMBOL                    -> symbol
+         | derivative
+         | matrix
+         | matrix_env
+         | "(" expr ")"
+         | "\\left(" expr "\\right)"
+         | row_op
+
+    derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
+              | "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "\\left(" expr "\\right)" -> derivative_dx_left
+
+    matrix: "[" matrix_rows "]" -> matrix_rows
+    matrix_rows: row ("," row)* -> matrix_rows
+    row: "[" elements "]" -> row
+    elements: expr ("," expr)* -> elements
+
+    matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
+
+    matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
+    matrix_env_row: expr ( "&" expr )*
+
+    matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
+
+    row_op: "R_" INT arrow row_expr                 -> row_replace
+          | "R_" INT swap_arrow "R_" INT            -> row_swap
+
+    arrow: "\\to" | "\\leftarrow"
+    swap_arrow: "\\leftrightarrow"
+
+    row_expr: "R_" INT                     -> row_reference
+             | expr "R_" INT               -> row_scale
+             | "R_" INT op expr "R_" INT   -> row_combine
+
+    op: "+" | "-"
+
+    NUMBER: /[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/
+    SYMBOL: /\\?[a-zA-Z][a-zA-Z0-9_]*/
+    INT: /[0-9]+/
+
+    %import common.WS_INLINE
+    %ignore WS_INLINE
+    """
+    
+    def __init__(self):
+        from lark import Lark, Transformer, v_args
+        self.parser = Lark(self.GRAMMAR, parser="earley", start="start")
+        
+        @v_args(inline=True)
+        class Latex2Sympy(Transformer):
+            def number(self, tok): 
+                s = str(tok)
+                return sp.Integer(s) if '.' not in s else sp.Float(s)
+            def symbol(self, tok):
+                s = str(tok).strip()
+                return sp.Symbol(s[1:] if s.startswith("\\") else s)
+            def neg(self, v): return sp.Mul(-1, v, evaluate=False)
+            def add(self, a, b): return sp.Add(a, b, evaluate=False)
+            def sub(self, a, b): return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
+            def mul(self, a, b):
+                import sympy as sp
+                # ✅ Preserve unevaluated matrix multiplication
+                if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) or isinstance(b, (sp.MatrixBase, sp.MatrixExpr)):
+                    a_ = sp.UnevaluatedExpr(a) if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) else a
+                    b_ = sp.UnevaluatedExpr(b) if isinstance(b, (sp.MatrixBase, sp.MatrixExpr)) else b
+                    return sp.Mul(a_, b_, evaluate=False)
+                return sp.Mul(a, b, evaluate=True)
+
+            def implicit_mul(self, a, b):
+                import sympy as sp
+                # ✅ Also keep implicit matrix multiplications unevaluated
+                if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
+                    return sp.Mul(a, b, evaluate=False)
+                return sp.Mul(a, b, evaluate=False)
+          
+            def div(self, a, b): return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
+            def implicit_mul(self, a, b): return sp.Mul(a, b, evaluate=False)
+            def power(self, a, b=None): return sp.Pow(a, b, evaluate=False) if b else a
+            def derivative_dx_paren(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
+            def derivative_dx_left(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
+            def elements(self, *items): return list(items)
+            def row(self, elements): return list(elements) if isinstance(elements, (list, tuple)) else [elements]
+            def matrix_rows(self, *rows):
+                row_list = [list(r) if isinstance(r, (list, tuple)) else [r] for r in rows]
+                return sp.Matrix(row_list)
+            def matrix_env(self, *args):
+                rows = []
+                for a in args:
+                    if a is None: continue
+                    if isinstance(a, list) and a and all(isinstance(x, (list, tuple)) for x in a):
+                        rows.extend([list(r) for r in a])
+                    elif isinstance(a, (list, tuple)): rows.append(list(a))
+                    else: rows.append([a])
+                return sp.Matrix(rows)
+            def row_reference(self, i): return ("ref", int(str(i)))
+            def row_scale(self, factor, i): return ("scale", int(str(i)), factor)
+            def row_combine(self, i1, op, factor, i2):
+                sign = 1 if str(op) == "+" else -1
+                return ("combine", int(str(i1)), int(str(i2)), factor, sign)
+            def row_replace(self, target, expr): return ("replace", int(str(target)), expr)
+            def row_swap(self, i1, i2): return ("swap", int(str(i1)), int(str(i2)))
+            def matrix_apply_ops(self, matrix, *row_ops):
+                try:
+                    m = matrix.copy() if hasattr(matrix, "copy") else sp.Matrix(matrix)
+                except:
+                    m = sp.Matrix(matrix)
+                for rowop in row_ops:
+                    try:
+                        op_type = rowop[0]
+                        if op_type == "swap":
+                            _, i1, i2 = rowop
+                            m.row_swap(i1 - 1, i2 - 1)
+                        elif op_type == "replace":
+                            _, target, expr = rowop
+                            etype = expr[0] if isinstance(expr, (list, tuple)) else None
+                            if etype == "scale":
+                                _, i, factor = expr
+                                m[target - 1, :] = (sp.sympify(factor) * m[i - 1, :]).tolist()[0]
+                            elif etype == "combine":
+                                _, i1, i2, factor, sign = expr
+                                factor_val = sp.sympify(factor)
+                                row_i1 = sp.Matrix(m[i1 - 1, :])
+                                row_i2 = sp.Matrix(m[i2 - 1, :])
+                                new_row = row_i1 + sign * factor_val * row_i2
+                                for col in range(m.cols):
+                                    m[i1 - 1, col] = new_row[0, col]
+                            elif etype == "ref":
+                                _, i = expr
+                                for col in range(m.cols):
+                                    m[target - 1, col] = m[i - 1, col]
+                    except: pass
+                return m
+            def start(self, e): return e
+        
+        self.transformer = Latex2Sympy()
+    
+    def parse(self, latex):
+        """Parse LaTeX expression into SymPy object with intelligent error hints."""
+        from lark import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
+        import traceback
+        import sympy as sp
+
+        clean_latex = (
+            str(latex)
+            .replace("\\left", "")
+            .replace("\\right", "")
+            .replace("\\mathrm{d}", "d")
+            .strip()
+        )
+
+        try:
+            # Try parsing and transforming normally
+            tree = self.parser.parse(clean_latex)
+            return self.transformer.transform(tree)
+
+        # ===================================================
+        # Handle grammar-level parse errors
+        # ===================================================
+        except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
+            pos = getattr(e, "pos_in_stream", None)
+            line = getattr(e, "line", "?")
+            col = getattr(e, "column", "?")
+            raw_msg = str(e)
+            msg_lower = raw_msg.lower()
+
+            # ===================================================
+            # Intelligent error interpretation
+            # ===================================================
+            explanation = "There seems to be a syntax issue in your LaTeX input."
+
+            # ---- Detect specific missing comma pattern ----
+            if "no terminal matches '['" in msg_lower or "no terminal matches" in msg_lower:
+                explanation = (
+                    "It looks like there’s a missing comma between matrix rows or list elements.\n"
+                    "For example, write `[[1,2],[3,4]]` instead of `[[1,2][3,4]]`."
+                )
+            elif "unexpectedtoken" in msg_lower:
+                explanation = (
+                    "It looks like there’s a missing operator or misplaced symbol.\n"
+                    "For example, you might have written `2x` instead of `2*x`, "
+                    "or left an extra symbol like `}` or `,`."
+                )
+            elif "unexpectedcharacters" in msg_lower:
+                explanation = (
+                    "The parser found characters or symbols it didn’t expect here.\n"
+                    "Check your brackets and commas — each element in a matrix should be separated properly."
+                )
+            elif "unexpected eof" in msg_lower or "unexpected end-of-input" in msg_lower:
+                explanation = (
+                    "The expression seems incomplete — it ended too early.\n"
+                    "You might be missing a closing bracket `]`, `)` or `}`."
+                )
+            elif "mismatched" in msg_lower:
+                explanation = "Your parentheses or brackets may be unbalanced."
+            elif "\\" in clean_latex and not clean_latex.startswith("\\"):
+                explanation = (
+                    "It seems like a backslash `\\` was used outside a valid LaTeX command. "
+                    "Make sure commands like `\\frac` or `\\sqrt` are properly written."
+                )
+
+            # ===================================================
+            # Contextual caret for visual pinpoint
+            # ===================================================
+            snippet = clean_latex
+            caret_line = ""
+            if pos is not None and isinstance(pos, int) and pos < len(clean_latex):
+                caret_line = " " * pos + "⬆️"
+            context = f"{snippet}\n{caret_line}"
+
+            # ===================================================
+            # Final composed message
+            # ===================================================
+            full_msg = (
+                f"{explanation}\n\n"
+                f"Error Type: {type(e).__name__}\n"
+                f"Location: Line {line}, Column {col}\n\n"
+                f"Context:\n{context}"
+            )
+
+            self._show_error_popup(full_msg)
+            window.console.log(f"Parse error details:\n{traceback.format_exc()}")
+            return None
+
+        # ===================================================
+        # Unexpected general errors
+        # ===================================================
+        except Exception as e:
+            msg = f"An unexpected error occurred while parsing: {e}"
+            self._show_error_popup(msg)
+            window.console.log(traceback.format_exc())
+            return None
+
+    def _show_error_popup(self, message):
+        """Display a clean white popup at the top for parser errors."""
+        from js import document
+
+        # Remove any existing popup
+        existing = document.querySelector("#parserErrorPopup")
+        if existing:
+            existing.remove()
+
+        # Create main popup container
+        div = document.createElement("div")
+        div.id = "parserErrorPopup"
+        div.style.position = "fixed"
+        div.style.top = "30px"
+        div.style.left = "50%"
+        div.style.transform = "translateX(-50%)"
+        div.style.backgroundColor = "white"
+        div.style.color = "#111827"  # near-black text
+        div.style.padding = "20px"
+        div.style.borderRadius = "10px"
+        div.style.zIndex = "10000"
+        div.style.width = "75%"
+        div.style.maxWidth = "650px"
+        div.style.whiteSpace = "pre-wrap"
+        div.style.fontFamily = "monospace"
+        div.style.fontSize = "14px"
+        div.style.boxShadow = "0 4px 16px rgba(0,0,0,0.25)"
+        div.style.border = "1px solid #e5e7eb"
+
+        # Create close button
+        close_btn = document.createElement("button")
+        close_btn.innerText = "✖"
+        close_btn.style.position = "absolute"
+        close_btn.style.top = "8px"
+        close_btn.style.right = "10px"
+        close_btn.style.background = "transparent"
+        close_btn.style.color = "#9b1c1c"
+        close_btn.style.border = "none"
+        close_btn.style.fontSize = "18px"
+        close_btn.style.cursor = "pointer"
+        close_btn.onclick = lambda e: div.remove()
+
+        # Title line
+        title = document.createElement("div")
+        title.style.fontWeight = "bold"
+        title.style.fontSize = "15px"
+        title.style.marginBottom = "8px"
+        title.style.color = "#b91c1c"
+        title.innerText = "❌ Parse Error"
+
+        # Message content
+        content = document.createElement("div")
+        content.innerText = message
+        content.style.marginTop = "5px"
+
+        # Compose popup
+        div.appendChild(close_btn)
+        div.appendChild(title)
+        div.appendChild(content)
+        document.body.appendChild(div)
+ 
+    def compare(self, a, b):
+        """Matrix-aware equality test (improved version of compare)."""
+        import sympy as sp
+        try:
+            # ✅ Both are matrices
+            if isinstance(a, sp.MatrixBase) and isinstance(b, sp.MatrixBase):
+                if a.shape != b.shape:
+                    return False
+                for i in range(a.rows):
+                    for j in range(a.cols):
+                        if not sp.simplify(a[i, j] - b[i, j]) == 0:
+                            return False
+                return True
+
+            # ✅ One is list, the other is matrix
+            if isinstance(a, sp.MatrixBase) and isinstance(b, list):
+                return self.compare(a, sp.Matrix(b))
+            if isinstance(b, sp.MatrixBase) and isinstance(a, list):
+                return self.compare(sp.Matrix(a), b)
+
+            # ✅ Scalars or symbolic expressions
+            return sp.simplify(a - b) == 0
+
+        except Exception:
+            try:
+                return a.equals(b)
+            except Exception:
+                return False
+    
+    def normalize(self, expr):
+        """Normalize and simplify expressions (matrix + scalar safe)."""
+        import sympy as sp
+        if expr is None:
+            return None
+        try:
+            # Evaluate deferred operations
+            if hasattr(expr, "doit"):
+                expr = expr.doit()
+
+            # Convert list into Matrix if needed
+            if isinstance(expr, list):
+                expr = sp.Matrix(expr)
+
+            # Simplify matrices element-wise
+            if isinstance(expr, sp.Matrix):
+                expr = expr.applyfunc(sp.simplify)
+            else:
+                # Handle cases where scalar * matrix or vice versa
+                if isinstance(expr, sp.Mul) and not expr.is_Number:
+                    args = expr.args
+                    has_matrix = any(isinstance(a, sp.Matrix) for a in args)
+                    has_scalar = any(not isinstance(a, sp.Matrix) for a in args)
+                    if has_matrix and has_scalar:
+                        return sp.Mul(*args, evaluate=True)
+
+                # Simplify generic scalar expressions
+                expr = sp.simplify(expr)
+
+        except Exception as e:
+            window.console.log(f"normalize error: {e}")
+
+        return expr
+    
+    def extract_structure(self, expr):
+        """Extract structural fingerprint of expression (matrix-aware)."""
+        import sympy as sp, traceback
+        operators, operands = {}, {}
+
+        def process(node, parent_op=None):
+            if node is None:
+                return
+            if isinstance(node, (tuple, list)) and all(isinstance(i, sp.Integer) for i in node):
+                return
+            # ✅ For actual numeric/symbolic matrices
+            if isinstance(node, sp.MatrixBase):
+                for el in node:
+                    process(el, parent_op)
+                return
+            # ✅ For symbolic (unevaluated) matrix expressions
+            if isinstance(node, sp.MatrixExpr) and not isinstance(node, sp.MatrixBase):
+                operands[str(node)] = operands.get(str(node), 0) + 1
+                return
+            # ✅ Recurse through normal expression trees
+            if hasattr(node, "args") and len(node.args) > 0:
+                op_name = type(node).__name__
+                if op_name == "Tuple":
+                    for c in node.args:
+                        process(c, parent_op)
+                    return
+                if not (op_name == "Mul" and (parent_op == "Mul" or len(node.args) == 1)):
+                    operators[op_name] = operators.get(op_name, 0) + 1
+                for c in node.args:
+                    process(c, op_name)
+                return
+            # ✅ Leaf node
+            val = str(node).strip().replace(" ", "")
+            if val == "-1":
+                return
+            operands[val] = operands.get(val, 0) + 1
+
+        try:
+            process(expr)
+        except Exception as e:
+            window.console.log(f"extract_structure error: {e}")
+            window.console.log(traceback.format_exc())
+
+        return {
+            "operators": operators,
+            "operands": operands,
+            "total_ops": sum(operators.values()),
+            "total_operands": sum(operands.values()),
+        }
+  
+    def compare_structures(self, expected_structure, user_structure):
+        """Compare structures of two expressions"""
+        try:
+            if not isinstance(expected_structure, dict): 
+                expected_structure = self.extract_structure(expected_structure)
+            if not isinstance(user_structure, dict): 
+                user_structure = self.extract_structure(user_structure)
+            exp_ops = expected_structure.get("operators", {})
+            usr_ops = user_structure.get("operators", {})
+            exp_operands = expected_structure.get("operands", {})
+            usr_operands = user_structure.get("operands", {})
+            def normalize_operands(operands):
+                normalized = {}
+                for k, v in operands.items():
+                    nk = k.replace(".0", "")
+                    normalized[nk] = normalized.get(nk, 0) + v
+                return normalized
+            exp_operands = normalize_operands(exp_operands)
+            usr_operands = normalize_operands(usr_operands)
+            same_ops = exp_ops == usr_ops
+            same_operands = exp_operands == usr_operands
+            return {
+                "structurally_identical": same_ops and same_operands,
+                "expected_ops": exp_ops,
+                "user_ops": usr_ops,
+                "expected_operands": exp_operands,
+                "user_operands": usr_operands
+            }
+        except Exception as e:
+            return {"structurally_identical": False, "error": str(e)}
+          
+
+class DataManager:
+    """Handles data persistence and export functionality"""
+    
+    def __init__(self):
+        self.storage_key = "problem_solver_progress_v1"
+    
+    def save_to_storage(self, app):
+        """Save application state to local storage"""
+        try:
+            if not app.current_problem_set_uuid:
+                app.current_problem_set_uuid = str(uuid.uuid4())
+                window.console.log(f"Generated missing UUID during save: {app.current_problem_set_uuid}")
+            
+            description_display = document.querySelector("#currentProblemSetDescription")
+            problem_set_description = ""
+            if description_display and description_display.textContent != "No problem set loaded" and description_display.textContent != "No description provided":
+                problem_set_description = description_display.textContent    
+            
+            serializable_states = {}
+            for prob_idx, state_list in app.problem_states.items():
+                serializable_states[str(prob_idx)] = []
+                for st in state_list:
+                    serializable_step = {
+                        "step": st.get("step", {}),
+                        "attempts": st.get("attempts", 0),
+                        "attempt_history": st.get("attempt_history", []),
+                        "correct": st.get("correct", False),
+                        "finalized": st.get("finalized", False),
+                        "problem_index": st.get("problem_index", 0),
+                        "step_index": st.get("step_index", 0)
+                    }
+                    serializable_states[str(prob_idx)].append(serializable_step)
+            
+            data_to_save = {
+                "problem_set_id": app.current_problem_set_uuid,
+                "problem_set_description": problem_set_description,
+                "problem_set": app.problem_set,
+                "problem_states": serializable_states,
+                "current_problem_index": app.current_problem_index,
+                "saved_timestamp": window.Date.new().toISOString(),
+                "version": "2.0"
+            }
+            
+            json_str = json.dumps(data_to_save)
+            import brotli
+            compressed = brotli.compress(json_str.encode('utf-8'))
+            b64_str = base64.b64encode(compressed).decode('utf-8')
+            
+            window.localStorage.setItem(self.storage_key, b64_str)
+            
+            for idx in range(len(app.problem_set)):
+                app.ui_controller.update_progress(idx)
+            
+            window.console.log(f"✓ Saved progress with UUID: {app.current_problem_set_uuid}")
+            app.ui_controller.show_save_indicator()
+            return True
+            
+        except Exception as e:
+            window.console.error(f"Failed to save: {e}")
+            app.ui_controller.show_error_indicator()
+            return False
+    
+    def load_from_storage(self, app):
+        """Load application state from local storage"""
+        try:
+            stored_data = window.localStorage.getItem(self.storage_key)
+            if not stored_data:
+                return False
+            
+            import brotli
+            compressed = base64.b64decode(stored_data)
+            json_str = brotli.decompress(compressed).decode('utf-8')
+            data = json.loads(json_str)
+            
+            if "problem_set_id" in data:
+                app.current_problem_set_uuid = data.get("problem_set_id")
+                problem_set_description = data.get("problem_set_description", "")
+                app.problem_set = data.get("problem_set", [])
+                window.console.log(f"✓ Loaded with shared UUID: {app.current_problem_set_uuid}")
+                window.console.log(f"📝 Description: {problem_set_description}")
+            else:
+                app.problem_set = data.get("problem_set", [])
+                problem_set_description = ""
+                if app.problem_set and app.problem_set[0].get("id"):
+                    app.current_problem_set_uuid = app.problem_set[0].get("id")
+                else:
+                    app.current_problem_set_uuid = str(uuid.uuid4())
+            
+            app.current_problem_index = data.get("current_problem_index")
+            saved_time = data.get("saved_timestamp", "unknown")
+            
+            if not app.problem_set:
+                return False
+            
+            serialized_states = data.get("problem_states", {})
+            for prob_idx_str, state_data in serialized_states.items():
+                prob_idx = int(prob_idx_str)
+                app.problem_states[prob_idx] = state_data
+            
+            app.ui_controller.update_uuid_display(app.current_problem_set_uuid, problem_set_description)
+            
+            window.console.log(f"✓ Loaded progress: {len(app.problem_set)} problems with UUID: {app.current_problem_set_uuid}")
+            
+            return True
+        except Exception as e:
+            window.console.error(f"Failed to load: {e}")
+            return False
+    
+    def export_progress(self, app):
+        """Export all progress data"""
+        if app.current_problem_index is not None and app.solve_state:
+            app.problem_states[app.current_problem_index] = app.solve_state
+        
+        if not app.problem_set:
+            window.alert("No problems loaded. Load problems first!")
+            return
+        
+        phone = "anonymous"
+        problems_progress = []
+        total_time = 0.0
+        total_attempts = 0
+        total_finalized = 0
+        total_steps = 0
+        
+        problem_set_id = app.current_problem_set_uuid
+        problem_set_description = getattr(window, 'current_problem_set_description', '') or ''
+        
+        export_timestamp = str(window.Date.new().getTime())
+        export_id = f"export_{export_timestamp}_{len(app.problem_set)}_problems"
+        
+        for prob_idx in range(len(app.problem_set)):
+            current_prob = app.problem_set[prob_idx]
+            problem_uuid = f"{problem_set_id or 'unknown'}_problem_{prob_idx + 1}"
+            problem_title = current_prob.get("title", f"Problem {prob_idx + 1}")
+            defined_steps = current_prob.get("steps", []) or []
+            steps_count = len(defined_steps)
+            prob_state = app.problem_states.get(prob_idx, [])
+            
+            prob_total_time = 0.0
+            prob_total_attempts = 0
+            prob_finalized = 0
+            steps_progress = []
+            
+            for i in range(steps_count):
+                if i < len(prob_state):
+                    st = prob_state[i]
+                    attempt_history = st.get("attempt_history", []) or []
+                    attempts_num = st.get("attempts", 0) or len(attempt_history)
+                    time_spent = round(sum(a.get("time_taken_seconds", 0) for a in attempt_history), 2)
+                    correct_flag = bool(st.get("correct", False))
+                    finalized_flag = bool(st.get("finalized", False))
+                else:
+                    attempt_history = []
+                    attempts_num = 0
+                    time_spent = 0.0
+                    correct_flag = False
+                    finalized_flag = False
+                
+                prob_total_time += time_spent
+                prob_total_attempts += attempts_num
+                prob_finalized += 1 if finalized_flag else 0
+                
+                step_def = defined_steps[i] if i < len(defined_steps) else {}
+                steps_progress.append({
+                    "step_number": i + 1,
+                    "description": step_def.get("description", []),
+                    "expression": step_def.get("expression", ""),
+                    "expected": step_def.get("expected", ""),
+                    "status": {
+                        "attempts": attempts_num,
+                        "correct": correct_flag,
+                        "finalized": finalized_flag,
+                        "time_spent_seconds": round(time_spent, 2)
+                    },
+                    "attempts": attempt_history
+                })
+            
+            total_time += prob_total_time
+            total_attempts += prob_total_attempts
+            total_finalized += prob_finalized
+            total_steps += steps_count
+            
+            problem_data = {
+                "problem_index": prob_idx,
+                "problem_id": problem_uuid,
+                "problem_number": prob_idx + 1,
+                "problem_title": problem_title,
+                "problem_description": current_prob.get("description", []),
+                "summary": {
+                    "total_steps": steps_count,
+                    "finalized_steps": prob_finalized,
+                    "correct_steps": sum(1 for s in steps_progress if s.get("status", {}).get("correct")),
+                    "total_attempts": prob_total_attempts,
+                    "total_time_seconds": round(prob_total_time, 2)
+                },
+                "steps_progress": steps_progress
+            }
+            problems_progress.append(problem_data)
+        
+        export_data = {
+            "export_metadata": {
+                "export_date": window.Date.new().toISOString(),
+                "app_name": "Problem Solver",
+                "version": "2.0",
+                "student_phone": phone,
+                "export_type": "multi_problem",
+                "export_id": export_id,
+                "problem_set_id": problem_set_id,
+                "problem_set_description": problem_set_description
+            },
+            "problem_set_id": problem_set_id,
+            "problem_set_description": problem_set_description,
+            "export_id": export_id,
+            "overall_summary": {
+                "total_problems": len(problems_progress),
+                "total_steps": total_steps,
+                "finalized_steps": total_finalized,
+                "total_attempts": total_attempts,
+                "total_time_seconds": round(total_time, 2)
+            },
+            "problems": problems_progress
+        }
+        
+        json_str = json.dumps(export_data)
+        import brotli
+        compressed = brotli.compress(json_str.encode('utf-8'))
+        b64_str = base64.b64encode(compressed).decode('utf-8')
+        
+        output = f"=== STUDENT PROGRESS EXPORT ===\n{b64_str}\n=== END EXPORT ==="
+        
+        blob = window.Blob.new([output], {"type": "text/plain"})
+        url = window.URL.createObjectURL(blob)
+        a = document.createElement("a")
+        a.href = url
+        timestamp = window.Date.new().toISOString().replace(":", "-").split(".")[0]
+        a.download = f"progress_all_problems_{timestamp}.txt"
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.setTimeout(create_proxy(lambda: window.URL.revokeObjectURL(url)), 1000)
+        
+        try:
+            window.navigator.clipboard.writeText(b64_str)
+            window.alert(f"✅ All progress exported!\n\n📋 Copied to clipboard!\n\nProblems: {len(problems_progress)}\nSteps finalized: {total_finalized}/{total_steps}")
+        except:
+            window.alert(f"✅ All progress exported!\n\nProblems: {len(problems_progress)}\nSteps finalized: {total_finalized}/{total_steps}")
+
+class UIController:
+    """Manages UI interactions and display"""
+    
+    def __init__(self, app):
+        self.app = app
+        self.current_mode = "mobile"
+        self.current_page = "problems"
+        self.MQ = None
+    
+    def init_mathquill(self):
+        """Initialize MathQuill interface"""
+        if self.MQ is None:
+            if hasattr(window, 'MathQuill') and window.MathQuill:
+                self.MQ = window.MathQuill.getInterface(2)
+            else:
+                window.setTimeout(create_proxy(self.init_mathquill), 600)
+                return False
+        return True
+    
+    def set_ui_mode(self, mode):
+        """Switch between mobile and desktop UI modes"""
+        body = document.body
+        body.className = f"{mode}-mode"
+        self.current_mode = mode
+        
+        # Update button states
+        mobile_btn = document.querySelector('.ui-mode-btn[data-mode="mobile"]')
+        desktop_btn = document.querySelector('.ui-mode-btn[data-mode="desktop"]')
+        
+        if mode == "mobile":
+            mobile_btn.classList.add("active")
+            desktop_btn.classList.remove("active")
+        else:
+            desktop_btn.classList.add("active")
+            mobile_btn.classList.remove("active")
+        
+        # Adjust UI elements based on mode
+        if mode == "mobile":
+            self.enable_mobile_mode()
+        else:
+            self.enable_desktop_mode()
+    
+    def enable_mobile_mode(self):
+        """Enable mobile-specific UI features"""
+        main_content = document.querySelector("#mainContent")
+        header = document.querySelector("#mainHeader")
+        menu_btn = document.querySelector("#menuBtn")
+        initial_panel = document.querySelector("#initialLoadPanel")
+        
+        if main_content:
+            main_content.classList.add("problems-loaded")
+        if header:
+            header.classList.add("hidden")
+        if menu_btn:
+            menu_btn.classList.remove("hidden")
+        if initial_panel:
+            initial_panel.style.display = "none"
+    
+    def enable_desktop_mode(self):
+        """Enable desktop-specific UI features"""
+        main_content = document.querySelector("#mainContent")
+        header = document.querySelector("#mainHeader")
+        menu_btn = document.querySelector("#menuBtn")
+        initial_panel = document.querySelector("#initialLoadPanel")
+        
+        if main_content:
+            main_content.classList.remove("problems-loaded")
+        if header:
+            header.classList.remove("hidden")
+        if menu_btn:
+            menu_btn.classList.add("hidden")
+        if initial_panel:
+            initial_panel.style.display = "block"
+    
+    def toggle_sidebar(self):
+        """Toggle sidebar visibility (mobile only)"""
+        if self.current_mode != "mobile":
+            return
+        
+        sidebar = document.querySelector("#sidebar")
+        overlay = document.querySelector("#sidebarOverlay")
+        
+        if sidebar.classList.contains("open"):
+            self.close_sidebar()
+        else:
+            self.open_sidebar()
+    
+    def open_sidebar(self):
+        """Open sidebar (mobile only)"""
+        if self.current_mode != "mobile":
+            return
+        
+        sidebar = document.querySelector("#sidebar")
+        overlay = document.querySelector("#sidebarOverlay")
+        
+        sidebar.classList.add("open")
+        overlay.classList.add("show")
+    
+    def close_sidebar(self):
+        """Close sidebar (mobile only)"""
+        sidebar = document.querySelector("#sidebar")
+        overlay = document.querySelector("#sidebarOverlay")
+        
+        sidebar.classList.remove("open")
+        overlay.classList.remove("show")
+    
+    def show_page(self, page_name):
+        """Show a specific page and hide others"""
+        # Hide all pages
+        pages = document.querySelectorAll(".page")
+        for page in pages:
+            page.classList.remove("active")
+        
+        # Show the requested page
+        target_page = document.querySelector(f"#{page_name}Page")
+        if target_page:
+            target_page.classList.add("active")
+            self.current_page = page_name
+        
+        # Update navigation
+        nav_items = document.querySelectorAll(".nav-item")
+        for item in nav_items:
+            item.classList.remove("active")
+            if item.getAttribute("data-page") == page_name:
+                item.classList.add("active")
+        
+        # Close sidebar on mobile after navigation
+        if self.current_mode == "mobile":
+            self.close_sidebar()
+    
+    def update_uuid_display(self, uuid, description=""):
+        """Update the UUID and description display in the UI"""
+        uuid_display = document.querySelector("#currentProblemSetUuid")
+        description_display = document.querySelector("#currentProblemSetDescription")
+        info_panel = document.querySelector("#problemSetInfo")
+        
+        if uuid_display and uuid:
+            uuid_display.textContent = uuid
+            if description_display:
+                if description:
+                    description_display.textContent = description
+                else:
+                    description_display.textContent = "No description provided"
+                    description_display.style.fontStyle = "italic"
+                    description_display.style.color = "#9ca3af"
+            if info_panel:
+                info_panel.style.display = "block"
+        elif uuid_display:
+            uuid_display.textContent = "No problem set loaded"
+            if description_display:
+                description_display.textContent = "No problem set loaded"
+                description_display.style.fontStyle = "normal"
+                description_display.style.color = "#374151"
+            if info_panel:
+                info_panel.style.display = "none"
+    
+    def update_progress(self, idx):
+        """Update progress display for a specific problem"""
+        acc = document.querySelector(f".accordion-problem[data-index='{idx}']")
+        if not acc: return
+            
+        header = acc.querySelector(".progress-summary")
+        
+        prob_state = self.app.problem_states.get(idx, [])
+        
+        total = len(self.app.problem_set[idx].get("steps", []))
+        finalized = sum(1 for s in prob_state if s.get("finalized", False))
+        is_completed = finalized == total and total > 0
+        
+        if header: 
+            if is_completed:
+                header.innerHTML = f"✅ {finalized}/{total} completed"
+                header.style.color = "#059669"
+                header.style.fontWeight = "700"
+            else:
+                header.innerHTML = f"{finalized}/{total} completed"
+                header.style.color = "#6b7280"
+                header.style.fontWeight = "600"
+        
+        if is_completed:
+            acc.classList.add("finished")
+            acc.style.borderColor = "#10b981"
+            acc.style.background = "#f0fdf4"
+            
+            acc_header = acc.querySelector(".accordion-header")
+            if acc_header:
+                acc_header.style.background = "#dcfce7"
+                title_span = acc_header.querySelector("span:first-child")
+                if title_span:
+                    title_span.style.color = "#059669"
+        else:
+            acc.classList.remove("finished")
+            acc.style.borderColor = "#e2e8f0"
+            acc.style.background = "#ffffff"
+            
+            acc_header = acc.querySelector(".accordion-header")
+            if acc_header:
+                acc_header.style.background = "#f0f4ff"
+                title_span = acc_header.querySelector("span:first-child")
+                if title_span:
+                    title_span.style.color = ""
+    
+    def show_save_indicator(self):
+        """Show save success indicator"""
+        indicator = document.querySelector("#storageIndicator")
+        if indicator:
+            indicator.textContent = "💾 Saved"
+            indicator.style.background = "#10b981"
+            indicator.classList.add("show")
+            window.setTimeout(create_proxy(lambda: indicator.classList.remove("show")), 2000)
+    
+    def show_error_indicator(self):
+        """Show save error indicator"""
+        indicator = document.querySelector("#storageIndicator")
+        if indicator:
+            indicator.textContent = "💥 Save Failed"
+            indicator.style.background = "#dc2626"
+            indicator.classList.add("show")
+            window.setTimeout(create_proxy(lambda: indicator.classList.remove("show")), 3000)
+    
+    def render_rich_content(self, container, blocks):
+        """Render rich content blocks (text, math, images)"""
+        container.innerHTML = ""
+        for blk in blocks:
+            if blk["type"] == "text":
+                container.appendChild(document.createTextNode(blk["value"]))
+            elif blk["type"] == "math":
+                span = document.createElement("span")
+                span.className = "math-inline"
+                latex = blk.get("latex", "")
+                latex = self.detect_and_convert_matrix(latex)
+                span.innerHTML = f"\\({latex}\\)"
+                container.appendChild(span)
+            elif blk["type"] == "image":
+                img = document.createElement("img")
+                img.className = "img-inline"
+                img.src = blk.get("src", "")
+                container.appendChild(img)
+        try:
+            if hasattr(window, 'MathJax') and hasattr(window.MathJax, 'typesetPromise'):
+                window.MathJax.typesetPromise([container])
+        except: pass
+    
+    def detect_and_convert_matrix(self, latex_or_text):
+        """Detect and convert matrix notation to LaTeX"""
+        import re
+        text = str(latex_or_text).strip()
+        matrix_pattern = r'(?:\\left)?\[(?:\\left)?\[[\d.,\s\-+eE\\right]+\](?:\s*,\s*(?:\\left)?\[[\d.,\s\-+eE\\right]+\])*(?:\\right)?\]'
+        matches = list(re.finditer(matrix_pattern, text))
+        if not matches:
+            return text
+        replacements = []
+        for match in matches:
+            matrix_str = match.group(0)
+            cleaned = matrix_str.replace("\\left", "").replace("\\right", "").replace("\\,", "").replace("\\ ", "")
+            cleaned = cleaned.replace("\\cdot", "").replace("\\times", "")
+            cleaned = re.sub(r'\s+', '', cleaned)
+            if not (cleaned.startswith('[[') and cleaned.endswith(']]')):
+                continue
+            try:
+                import ast
+                matrix_data = ast.literal_eval(cleaned)
+                if isinstance(matrix_data, list) and all(isinstance(row, list) for row in matrix_data):
+                    rows_latex = []
+                    for row in matrix_data:
+                        row_str = " & ".join(str(val) for val in row)
+                        rows_latex.append(row_str)
+                    latex_matrix = "\\begin{bmatrix}" + " \\\\ ".join(rows_latex) + "\\end{bmatrix}"
+                    replacements.append({
+                        'start': match.start(),
+                        'end': match.end(),
+                        'replacement': latex_matrix
+                    })
+            except:
+                pass
+        if replacements:
+            replacements.sort(key=lambda x: x['start'], reverse=True)
+            for rep in replacements:
+                text = text[:rep['start']] + rep['replacement'] + text[rep['end']:]
+        return text
+    
+    def show_telegram_modal(self, messages, num_problems, finalized, total_steps):
+        """Display modal with Telegram message chunks"""
+        backdrop = document.createElement("div")
+        backdrop.className = "modal-backdrop"
+        
+        modal = document.createElement("div")
+        modal.className = "telegram-modal"
+        
+        header_html = f"""
+            <h3>✈️ Export to Telegram</h3>
+            <div style='background:#e0f2fe;padding:12px;border-radius:8px;margin-bottom:16px;font-size:14px;'>
+                <strong>📊 Summary:</strong> {num_problems} problems • {finalized}/{total_steps} steps finalized<br>
+                <strong>📨 Messages:</strong> {len(messages)} parts (Telegram limit: 4,096 chars/message)
+            </div>
+            <div style='margin-bottom:12px;font-size:13px;color:#64748b;'>
+                Copy each message below and paste into Telegram in order:
+            </div>
+        """
+        
+        chunks_container = document.createElement("div")
+        chunks_container.id = "telegramChunks"
+        
+        modal.innerHTML = header_html
+        modal.appendChild(chunks_container)
+        
+        for msg in messages:
+            chunk_div = document.createElement("div")
+            chunk_div.className = "telegram-chunk"
+            
+            preview = msg['content'][:200] if len(msg['content']) > 200 else msg['content']
+            
+            chunk_div.innerHTML = f"""
+                <div class='telegram-chunk-header'>
+                    <span class='telegram-chunk-title'>Part {msg['part']} of {msg['total']}</span>
+                    <span class='telegram-chunk-size'>{msg['length']} chars</span>
+                </div>
+                <div class='telegram-chunk-content'>{html.escape(preview)}...</div>
+                <button class='telegram-copy-btn' data-part='{msg['part']}'>📋 Copy Part {msg['part']}</button>
+            """
+            
+            chunks_container.appendChild(chunk_div)
+            
+            copy_btn = chunk_div.querySelector(".telegram-copy-btn")
+            
+            def make_copy_handler(message_content, part_num, btn):
+                def copy_handler(e):
+                    try:
+                        window.navigator.clipboard.writeText(message_content)
+                        btn.textContent = f"✅ Copied Part {part_num}!"
+                        btn.classList.add("copied")
+                        
+                        def reset_button():
+                            btn.classList.remove("copied")
+                            btn.textContent = f"📋 Copy Part {part_num}"
+                        
+                        window.setTimeout(create_proxy(reset_button), 2000)
+                    except Exception as ex:
+                        window.alert(f"Failed to copy: {ex}")
+                return copy_handler
+            
+            copy_btn.addEventListener("click", create_proxy(make_copy_handler(msg['content'], msg['part'], copy_btn)))
+        
+        close_div = document.createElement("div")
+        close_div.className = "telegram-modal-close"
+        close_btn = document.createElement("button")
+        close_btn.className = "btn"
+        close_btn.style.width = "100%"
+        close_btn.textContent = "Close"
+        close_div.appendChild(close_btn)
+        modal.appendChild(close_div)
+        
+        def close_modal(e=None):
+            modal.remove()
+            backdrop.remove()
+        
+        close_btn.addEventListener("click", create_proxy(close_modal))
+        backdrop.addEventListener("click", create_proxy(close_modal))
+        
+        document.body.appendChild(backdrop)
+        document.body.appendChild(modal)
+
+class ProblemManager:
+    """Manages problem loading and solving logic"""
+    
+    def __init__(self, app):
+        self.app = app
+    
+    def extract_base64_from_text(self, text):
+        """Extract base64 data from text file"""
+        text = str(text).strip()
+        
+        if "=== STUDENT PROGRESS EXPORT ===" in text or "=== EXPORT PART" in text:
+            import re
+            pattern = r"===.*?EXPORT.*?===(.*?)(?:===|$)"
+            matches = re.findall(pattern, text, re.DOTALL)
+            if matches:
+                combined = "".join(matches)
+                cleaned = re.sub(r"[\s\r\n]+", "", combined)
+                return cleaned
+        
+        import re
+        cleaned = re.sub(r"[\s\r\n]+", "", text)
+        return cleaned
+    
+    def handle_file_upload(self, file):
+        """Handle uploaded file and load problems"""
+        if not file:
+            return
+        
+        from js import FileReader
+        reader = FileReader.new()
+        
+        def on_load(event):
+            try:
+                content = event.target.result
+                window.console.log(f"File loaded, length: {len(content)}")
+                
+                base64_data = self.extract_base64_from_text(content)
+                
+                if not base64_data:
+                    window.alert("❌ No valid data found in file")
+                    return
+                
+                window.console.log(f"Base64 extracted, length: {len(base64_data)}")
+                
+                try:
+                    import brotli
+                    compressed = base64.b64decode(base64_data)
+                    window.console.log(f"Base64 decoded, compressed size: {len(compressed)}")
+                    
+                    json_text = brotli.decompress(compressed).decode("utf-8")
+                    window.console.log(f"Decompressed, JSON length: {len(json_text)}")
+                    
+                    problems = json.loads(json_text)
+                    window.console.log(f"Parsed {len(problems)} problems")
+                    
+                    self.load_problems_from_data(problems)
+                    
+                except Exception as e:
+                    window.console.error(f"Decode error: {e}")
+                    window.alert(f"❌ Failed to decode file: {e}")
+                    
+            except Exception as e:
+                window.console.error(f"Read error: {e}")
+                window.alert(f"❌ Failed to read file: {e}")
+        
+        reader.onload = create_proxy(on_load)
+        reader.readAsText(file)
+    
+    def load_problems_from_data(self, problems_data):
+        """Load problems from decoded JSON data"""
+        if isinstance(problems_data, dict) and "problems" in problems_data:
+            problem_set_uuid = problems_data.get("problem_set_id")
+            problem_set_description = problems_data.get("problem_set_description", "")
+            problems = problems_data.get("problems", [])
+            window.console.log(f"📦 New format detected - Problem set UUID: {problem_set_uuid}")
+            window.console.log(f"📝 Description: {problem_set_description}")
+        elif isinstance(problems_data, list):
+            problems = problems_data
+            problem_set_description = ""
+            problem_set_uuid = problems[0].get("id") if problems and problems[0].get("id") else None
+            if problem_set_uuid:
+                window.console.log(f"📦 Legacy format - extracted UUID from first problem: {problem_set_uuid}")
+            else:
+                problem_set_uuid = str(uuid.uuid4())
+                window.console.log(f"📦 Legacy format - generated new UUID: {problem_set_uuid}")
+        else:
+            window.alert("Invalid problem data format")
+            return
+        
+        if self.app.problem_set and self.app.problem_states:
+            confirmed = window.confirm(
+                "⚠️ Load new problems?\n\n" +
+                f"You have progress on {len(self.app.problem_set)} problems.\n\n" +
+                "Continue loading?"
+            )
+            if not confirmed:
+                return
+        
+        self.app.current_problem_set_uuid = problem_set_uuid
+        self.app.problem_set = problems
+        self.app.problem_states = {}
+        self.app.current_problem_index = None
+        
+        self.app.ui_controller.update_uuid_display(problem_set_uuid, problem_set_description)
+        
+        for elem_id in ["pasteJsonMain", "pasteJson", "uploadFileMain", "uploadFile"]:
+            elem = document.querySelector(f"#{elem_id}")
+            if elem:
+                if elem.tagName.lower() == "input":
+                    elem.value = ""
+                elif elem.tagName.lower() == "textarea":
+                    elem.value = ""
+        
+        self.app.ui_controller.close_sidebar()
+        self.render_problems()
+        self.app.data_manager.save_to_storage(self.app)
+        window.alert(f"✅ Loaded {len(problems)} problems\nUUID: {problem_set_uuid}")
+        
+        # Switch to problems page after loading
+        self.app.ui_controller.show_page("problems")
+    
+    def render_problems(self):
+        """Render all problems in the UI"""
+        container = document.querySelector("#solveProblemsContainer")
+        container.innerHTML = ""
+        
+        # Hide the initial load panel
+        initial_panel = document.querySelector("#initialLoadPanel")
+        if initial_panel:
+            initial_panel.style.display = "none"
+        
+        for idx, prob in enumerate(self.app.problem_set):
+            title = prob.get("title", f"Problem {idx+1}")
+            steps = prob.get("steps", [])
+            total_steps = len(steps)
+            
+            prob_state = self.app.problem_states.get(idx, [])
+            finalized_steps = sum(1 for s in prob_state if s.get("finalized", False)) if prob_state else 0
+            is_completed = finalized_steps == total_steps and total_steps > 0
+            
+            accordion = document.createElement("div")
+            accordion.className = "accordion-problem"
+            accordion.setAttribute("data-index", str(idx))
+            
+            if is_completed:
+                accordion.classList.add("finished")
+                accordion.style.borderColor = "#10b981"
+                accordion.style.background = "#f0fdf4"
+            else:
+                accordion.style.borderColor = "#e2e8f0"
+                accordion.style.background = "#ffffff"
+            
+            header = document.createElement("div")
+            header.className = "accordion-header"
+            
+            if is_completed:
+                progress_indicator = f"<span class='progress-summary' style='color:#059669;font-weight:700;'>✅ {finalized_steps}/{total_steps} completed</span>"
+                title_style = "style='color:#059669;'"
+            else:
+                progress_indicator = f"<span class='progress-summary' style='color:#6b7280;'>{finalized_steps}/{total_steps} completed</span>"
+                title_style = ""
+            
+            header.innerHTML = f"<span {title_style}>{idx+1}. {title}</span>{progress_indicator}"
+            
+            if is_completed:
+                header.style.background = "#dcfce7"
+            else:
+                header.style.background = "#f0f4ff"
+            
+            body = document.createElement("div")
+            body.className = "accordion-body"
+            body.id = f"problemBody{idx}"
+            
+            accordion.appendChild(header)
+            accordion.appendChild(body)
+            container.appendChild(accordion)
+            
+            def make_toggle(pidx, body_elem):
+                def toggle(e):
+                    acc = e.currentTarget.parentElement
+                    is_open = acc.classList.contains("open")
+                    
+                    for other in container.querySelectorAll(".accordion-problem"):
+                        other.classList.remove("open")
+                    
+                    if not is_open:
+                        acc.classList.add("open")
+                        self.load_problem(pidx, body_elem)
+                        acc.setAttribute("data-loaded", "true")
+                return toggle
+            
+            header.addEventListener("click", create_proxy(make_toggle(idx, body)))
+        
+        open_idx = self.app.current_problem_index if self.app.current_problem_index is not None else 0
+        if open_idx < len(self.app.problem_set):
+            acc = container.querySelector(f".accordion-problem[data-index='{open_idx}']")
+            if acc:
+                acc.classList.add("open")
+                body = acc.querySelector(".accordion-body")
+                self.load_problem(open_idx, body)
+                acc.setAttribute("data-loaded", "true")
+    
+    def load_problem(self, index, container):
+        """Load a specific problem into the container"""
+        if self.app.current_problem_index is not None and self.app.solve_state:
+            self.app.problem_states[self.app.current_problem_index] = self.app.solve_state
+        
+        self.app.current_problem_index = index
+        
+        if index in self.app.problem_states and isinstance(self.app.problem_states[index], list):
+            if self.app.problem_states[index] and "container" in self.app.problem_states[index][0]:
+                self.app.solve_state = self.app.problem_states[index]
+                
+                step_to_show = 0
+                for i, st in enumerate(self.app.solve_state):
+                    if not st.get("finalized", False):
+                        step_to_show = i
+                        break
+                
+                for st in self.app.solve_state:
+                    st["container"].style.display = "none"
+                
+                self.show_step(step_to_show)
+                self.app.ui_controller.update_progress(index)
+                return
+            else:
+                serialized_state = self.app.problem_states[index]
+        else:
+            serialized_state = None
+        
+        self.app.solve_state = []
+        
+        prob = self.app.problem_set[index]
+        title = prob.get("title", f"Problem {index+1}")
+        desc_blocks = prob.get("description", [])
+        steps = prob.get("steps", [])
+        
+        container.innerHTML = ""
+        
+        if desc_blocks:
+            desc_div = document.createElement("div")
+            desc_div.className = "problem-description"
+            desc_div.innerHTML = f"<h4>{html.escape(title)}</h4>"
+            content_div = document.createElement("div")
+            self.app.ui_controller.render_rich_content(content_div, desc_blocks)
+            desc_div.appendChild(content_div)
+            container.appendChild(desc_div)
+        
+        for step_idx, step_data in enumerate(steps):
+            step_div = document.createElement("div")
+            step_div.className = "panel step"
+            step_div.style.display = "none"
+            step_div.innerHTML = f"""
+            <div style='font-weight:700;margin-bottom:10px;font-size:17px;'>Step {step_idx+1} of {len(steps)}</div>
+            <div class='step-description'></div>
+            <div style='margin-top:14px;'>
+              <div style='font-weight:700;margin-bottom:8px;'>Your Answer:</div>
+              <div class='math-input step-answer' style='margin-bottom:12px;'></div>
+              <div style='display:flex;flex-direction:column;gap:8px;'>
+                <button class='btn submitAnswer'>Submit Answer</button>
+                <button class='btn ghost finalizeStep' disabled>Finalize Step</button>
+                <button class='btn nextStep' style='display:none;background:#10b981;'>Next Step →</button>
+              </div>
+            </div>
+            <div class='step-feedback small'></div>
+            <div class='attempts-history' style='display:none;'></div>
+            """
+            
+            container.appendChild(step_div)
+            
+            step_desc_container = step_div.querySelector(".step-description")
+            step_desc_blocks = step_data.get("description", [])
+            if step_desc_blocks:
+                self.app.ui_controller.render_rich_content(step_desc_container, step_desc_blocks)
+            
+            answer_field = self.app.ui_controller.MQ.MathField(step_div.querySelector(".step-answer"))
+            
+            stobj = {
+                "step": step_data,
+                "container": step_div,
+                "answer_mf": answer_field,
+                "attempts": 0,
+                "attempt_history": [],
+                "correct": False,
+                "finalized": False,
+                "step_start_time": None,
+                "problem_index": index,
+                "step_index": step_idx
+            }
+            
+            if serialized_state and step_idx < len(serialized_state):
+                saved_step = serialized_state[step_idx]
+                stobj["attempts"] = saved_step.get("attempts", 0)
+                stobj["attempt_history"] = saved_step.get("attempt_history", [])
+                stobj["correct"] = saved_step.get("correct", False)
+                stobj["finalized"] = saved_step.get("finalized", False)
+                stobj["step_start_time"] = window.Date.now()
+                
+                if stobj["correct"] and stobj["attempt_history"]:
+                    for attempt in reversed(stobj["attempt_history"]):
+                        if attempt.get("type") == "submit" and attempt.get("correct"):
+                            last_answer = attempt.get("answer_latex", "")
+                            if last_answer and answer_field:
+                                answer_field.latex(last_answer)
+                            break
+                
+                if stobj["attempt_history"]:
+                    stobj["attempts"] = max(stobj["attempts"], len(stobj["attempt_history"]))
+                    history = step_div.querySelector(".attempts-history")
+                    history.style.display = "block"
+                    for attempt in stobj["attempt_history"]:
+                        entry = document.createElement("div")
+                        entry.style.marginBottom = "10px"
+                        entry.style.padding = "10px"
+                        entry.style.borderRadius = "8px"
+                        correct = attempt.get("correct", False)
+                        entry.style.background = "#dcfce7" if correct else "#fee2e2"
+                        entry.style.border = f"2px solid {'#86efac' if correct else '#fecaca'}"
+                        
+                        display_latex = self.app.ui_controller.detect_and_convert_matrix(attempt.get("answer_latex", ""))
+                        entry.innerHTML = f"<div style='font-weight:700;font-size:15px;'>Attempt #{attempt.get('attempt_number', 0)} ({attempt.get('time_taken_seconds', 0)}s) - {'✅ Correct' if correct else '❌ Incorrect'}</div><div style='margin-top:6px;padding:8px;background:#fff;border-radius:6px;'>\\({display_latex}\\)</div>"
+                        history.appendChild(entry)
+                    
+                    try:
+                        if hasattr(window, 'MathJax'): window.MathJax.typesetPromise([history])
+                    except: pass
+                
+                finalize_btn = step_div.querySelector(".finalizeStep")
+                submit_btn = step_div.querySelector(".submitAnswer")
+                next_btn = step_div.querySelector(".nextStep")
+                fb = step_div.querySelector(".step-feedback")
+                
+                if stobj["finalized"]:
+                    finalize_btn.disabled = True
+                    finalize_btn.style.opacity = "0.5"
+                    submit_btn.disabled = True
+                    submit_btn.style.opacity = "0.5"
+                    
+                    if step_idx + 1 < len(steps):
+                        next_btn.style.display = "block"
+                    
+                    if fb:
+                        fb.innerHTML = "<div style='color:#6d28d9;background:#f3e8ff;padding:10px;border-radius:6px;'>✅ Step finalized and completed</div>"
+                        
+                elif stobj["correct"]:
+                    finalize_btn.disabled = False
+                    finalize_btn.style.opacity = "1"
+                    
+                    if fb:
+                        fb.innerHTML = "<div style='color:#059669;background:#dcfce7;padding:10px;border-radius:6px;'>✅ Correct! Click Finalize to verify method.</div>"
+            
+            self.app.solve_state.append(stobj)
+            
+            submit_btn = step_div.querySelector(".submitAnswer")
+            finalize_btn = step_div.querySelector(".finalizeStep")
+            next_btn = step_div.querySelector(".nextStep")
+            
+            submit_btn.addEventListener("click", create_proxy(self.make_submit(len(self.app.solve_state)-1)))
+            finalize_btn.addEventListener("click", create_proxy(self.make_finalize(len(self.app.solve_state)-1)))
+            next_btn.addEventListener("click", create_proxy(self.make_next(len(self.app.solve_state)-1)))
+        
+        self.app.problem_states[index] = self.app.solve_state
+        
+        if self.app.solve_state:
+            step_to_show = 0
+            for i, st in enumerate(self.app.solve_state):
+                if not st.get("finalized", False):
+                    step_to_show = i
+                    break
+            self.show_step(step_to_show)
+        
+        self.app.ui_controller.update_progress(index)
+        self.app.data_manager.save_to_storage(self.app)
+    
+    def show_step(self, idx):
+        """Display a specific step"""
+        if idx >= len(self.app.solve_state): return
+        stobj = self.app.solve_state[idx]
+        stobj["container"].style.display = "block"
+        
+        if stobj.get("finalized"):
+            fb = stobj["container"].querySelector(".step-feedback")
+            if fb:
+                fb.innerHTML = "<div style='color:#6d28d9;background:#f3e8ff;padding:10px;border-radius:6px;'>✅ Step finalized - already completed</div>"
+        elif stobj.get("correct"):
+            stobj["step_start_time"] = window.Date.now()
+            fb = stobj["container"].querySelector(".step-feedback")
+            if fb:
+                fb.innerHTML = "<div style='color:#059669;background:#dcfce7;padding:10px;border-radius:6px;'>✅ Correct! Click Finalize to verify method.</div>"
+        else:
+            stobj["step_start_time"] = window.Date.now()
+            if stobj.get("answer_mf"):
+                stobj["answer_mf"].latex("")
+            fb = stobj["container"].querySelector(".step-feedback")
+            if fb: fb.innerHTML = ""
+    
+    def make_submit(self, idx):
+        """Create submit handler for a step (with parser error indication and matrix-safe compare)"""
+        def submit(e):
+            stobj = self.app.solve_state[idx]
+            sdata = stobj["step"]
+            cnt = stobj["container"]
+            fb = cnt.querySelector(".step-feedback")
+            finalize_btn = cnt.querySelector(".finalizeStep")
+            history = cnt.querySelector(".attempts-history")
+
+            if stobj.get("finalized"):
+                fb.innerHTML = (
+                    "<div style='color:#6d28d9;background:#f3e8ff;padding:10px;border-radius:6px;'>"
+                    "✅ This step is already finalized</div>"
+                )
+                return
+
+            user_latex = (
+                stobj["answer_mf"].latex().strip() if stobj.get("answer_mf") else ""
+            )
+            if not user_latex:
+                fb.innerHTML = (
+                    "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>"
+                    "❌ Enter an answer first</div>"
+                )
+                return
+
+            start_time = stobj.get("step_start_time", 0)
+            current_time = window.Date.now()
+
+            if start_time == 0 or (current_time - start_time) > 86400000:
+                stobj["step_start_time"] = current_time
+                time_taken = 0.0
+            else:
+                time_taken = round((current_time - start_time) / 1000, 2)
+
+            # ============================================
+            # PARSE USER AND EXPECTED EXPRESSIONS (WITH ERROR FEEDBACK)
+            # ============================================
+            try:
+                parsed_user = self.app.math_parser.parse(user_latex)
+            except Exception as e:
+                fb.innerHTML = (
+                    "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>"
+                    f"❌ Error while parsing your input: {e}</div>"
+                )
+                stobj["step_start_time"] = window.Date.now()
+                return
+
+            expected_latex = sdata.get("expected", "")
+            try:
+                parsed_expected = (
+                    self.app.math_parser.parse(expected_latex)
+                    if expected_latex
+                    else None
+                )
+            except Exception as e:
+                fb.innerHTML = (
+                    "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>"
+                    f"❌ Error parsing expected expression: {e}</div>"
+                )
+                stobj["step_start_time"] = window.Date.now()
+                return
+
+            # If parser failed and returned None (popup already shown)
+            if parsed_user is None or parsed_expected is None:
+                stobj["step_start_time"] = window.Date.now()
+                return
+
+            # ============================================
+            # NORMALIZE EXPRESSIONS
+            # ============================================
+            parsed_user = self.app.math_parser.normalize(parsed_user)
+            parsed_expected = self.app.math_parser.normalize(parsed_expected)
+
+            # ============================================
+            # MATRIX-AWARE COMPARISON (uses compare())
+            # ============================================
+            correct = self.app.math_parser.compare(parsed_expected, parsed_user)
+
+            # ============================================
+            # ATTEMPT LOGGING & UI FEEDBACK
+            # ============================================
+            stobj["attempts"] += 1
+            stobj["attempt_history"].append(
+                {
+                    "attempt_number": stobj["attempts"],
+                    "type": "submit",
+                    "answer_latex": user_latex,
+                    "correct": correct,
+                    "time_taken_seconds": time_taken,
+                    "timestamp": window.Date.new().toISOString(),
+                }
+            )
+
+            history.style.display = "block"
+            entry = document.createElement("div")
+            entry.style.marginBottom = "10px"
+            entry.style.padding = "10px"
+            entry.style.borderRadius = "8px"
+            entry.style.background = "#dcfce7" if correct else "#fee2e2"
+            entry.style.border = f"2px solid {'#86efac' if correct else '#fecaca'}"
+
+            display_latex = self.app.ui_controller.detect_and_convert_matrix(user_latex)
+            entry.innerHTML = (
+                f"<div style='font-weight:700;font-size:15px;'>Attempt #{stobj['attempts']} "
+                f"({time_taken}s) - {'✅ Correct' if correct else '❌ Incorrect'}</div>"
+                f"<div style='margin-top:6px;padding:8px;background:#fff;border-radius:6px;'>\\({display_latex}\\)</div>"
+            )
+            history.appendChild(entry)
+
+            try:
+                if hasattr(window, "MathJax"):
+                    window.MathJax.typesetPromise([entry])
+            except Exception:
+                pass
+
+            if correct:
+                fb.innerHTML = (
+                    "<div style='color:#059669;background:#dcfce7;padding:10px;border-radius:6px;'>"
+                    "✅ Correct! Now click Finalize to verify method.</div>"
+                )
+                stobj["correct"] = True
+                finalize_btn.disabled = False
+                finalize_btn.style.opacity = "1"
+                stobj["step_start_time"] = window.Date.now()
+            else:
+                fb.innerHTML = (
+                    "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>"
+                    "❌ Incorrect. Try again.</div>"
+                )
+                finalize_btn.disabled = True
+                finalize_btn.style.opacity = "0.5"
+                stobj["step_start_time"] = window.Date.now()
+
+            self.app.ui_controller.update_progress(stobj["problem_index"])
+            self.app.data_manager.save_to_storage(self.app)
+
+        return submit
+  
+    def make_finalize(self, idx):
+        """Create finalize handler for a step"""
+        def finalize(e):
+            stobj = self.app.solve_state[idx]
+            sdata = stobj["step"]
+            cnt = stobj["container"]
+            fb = cnt.querySelector(".step-feedback")
+            history = cnt.querySelector(".attempts-history")
+
+            if stobj.get("finalized"):
+                fb.innerHTML = "<div style='color:#6d28d9;background:#f3e8ff;padding:10px;border-radius:6px;'>✅ This step is already finalized</div>"
+                return
+
+            if not stobj.get("correct"):
+                fb.innerHTML = "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>❌ Submit correct answer first</div>"
+                return
+
+            user_latex = stobj["answer_mf"].latex().strip()
+            parsed_user_raw = self.app.math_parser.parse(user_latex)
+            if not parsed_user_raw:
+                fb.innerHTML = "<div style='color:#b91c1c;background:#fee2e2;padding:10px;border-radius:6px;'>❌ Could not parse your answer</div>"
+                return
+
+            start_time = stobj.get("step_start_time", 0)
+            current_time = window.Date.now()
+            if start_time == 0 or (current_time - start_time) > 86400000:
+                stobj["step_start_time"] = current_time
+                time_taken = 0.0
+            else:
+                time_taken = round((current_time - start_time) / 1000, 2)
+
+            expected_structure = sdata.get("expected_structure")
+
+            stobj["attempts"] += 1
+
+            final_record = {
+                "attempt_number": stobj["attempts"],
+                "type": "finalize",
+                "answer_latex": user_latex,
+                "time_taken_seconds": time_taken,
+                "timestamp": window.Date.new().toISOString()
+            }
+
+            if not expected_structure:
+                fb.innerHTML = "<div style='color:#f59e0b;background:#fef3c7;padding:10px;border-radius:6px;'>✅ Finalized (no structure check)</div>"
+                stobj["finalized"] = True
+                final_record["action"] = "finalized_no_structure_check"
+                final_record["correct"] = True
+                final_record["label"] = "🏁 Finalized (No Structure Check)"
+                self.show_next(idx)
+
+            else:
+                user_structure = self.app.math_parser.extract_structure(parsed_user_raw)
+                try:
+                    comparison = self.app.math_parser.compare_structures(expected_structure, user_structure)
+                    structurally_same = comparison.get("structurally_identical", False)
+                except Exception as ex:
+                    fb.innerHTML = f"<div style='color:#7f1d1d;background:#fee2e2;padding:10px;border-radius:6px;'>⚠️ Structure comparison failed: {ex}</div>"
+                    return
+
+                if structurally_same:
+                    fb.innerHTML = "<div style='color:#6d28d9;background:#f3e8ff;padding:10px;border-radius:6px;'>🏆 Perfect! Correct method. Finalized!</div>"
+                    stobj["finalized"] = True
+                    cnt.querySelector(".finalizeStep").disabled = True
+
+                    final_record["action"] = "finalized_structure_match"
+                    final_record["correct"] = True
+                    final_record["label"] = "🏁 Finalized (Structure Match)"
+                    self.show_next(idx)
+
+                else:
+                    exp_ops = comparison.get("expected_ops", {})
+                    usr_ops = comparison.get("user_ops", {})
+                    exp_operands = comparison.get("expected_operands", {})
+                    usr_operands = comparison.get("user_operands", {})
+
+                    diff_msg = "<div style='color:#d97706;background:#fef3c7;padding:10px;border-radius:6px;'>⚠️ Correct answer, but method differs.</div>"
+                    if exp_ops != usr_ops:
+                        diff_msg += f"<div style='font-size:13px;margin-top:6px;padding:8px;background:#fff;border-radius:6px;'>Expected operators: {exp_ops}<br>Your operators: {usr_ops}</div>"
+                    if exp_operands != usr_operands:
+                        diff_msg += f"<div style='font-size:13px;margin-top:6px;padding:8px;background:#fff;border-radius:6px;'>Expected operands: {exp_operands}<br>Your operands: {usr_operands}</div>"
+
+                    fb.innerHTML = diff_msg
+
+                    final_record.update({
+                        "action": "finalized_structure_mismatch",
+                        "expected_operators": exp_ops,
+                        "user_operators": usr_ops,
+                        "expected_operands": exp_operands,
+                        "user_operands": usr_operands,
+                        "correct": False,
+                        "label": "🏁 Finalized (Structure Mismatch)"
+                    })
+
+            stobj["attempt_history"].append(final_record)
+            history.style.display = "block"
+
+            entry = document.createElement("div")
+            entry.style.marginBottom = "10px"
+            entry.style.padding = "10px"
+            entry.style.borderRadius = "8px"
+            entry.style.background = "#dbeafe" if final_record.get("correct") else "#fef3c7"
+            entry.style.border = f"2px solid {'#93c5fd' if final_record.get('correct') else '#fcd34d'}"
+
+            label = final_record.get("label", "🏁 Finalized")
+            display_latex = self.app.ui_controller.detect_and_convert_matrix(final_record.get("answer_latex", ""))
+            entry.innerHTML = (
+                f"<div style='font-weight:700;font-size:15px;'>{label} — Attempt #{stobj['attempts']} "
+                f"({time_taken}s)</div>"
+                f"<div style='margin-top:6px;padding:8px;background:#fff;border-radius:6px;'>"
+                f"\\({display_latex}\\)</div>"
+            )
+            history.appendChild(entry)
+
+            try:
+                if hasattr(window, 'MathJax'):
+                    window.MathJax.typesetPromise([entry])
+            except:
+                pass
+
+            self.app.ui_controller.update_progress(stobj["problem_index"])
+            self.app.data_manager.save_to_storage(self.app)
+
+        return finalize
+    
+    def show_next(self, idx):
+        """Show next step button"""
+        stobj = self.app.solve_state[idx]
+        cnt = stobj["container"]
+        next_btn = cnt.querySelector(".nextStep")
+        fb = cnt.querySelector(".step-feedback")
+        
+        if idx + 1 < len(self.app.solve_state):
+            next_btn.style.display = "block"
+            fb.innerHTML += "<div style='color:#2563eb;margin-top:8px;padding:10px;background:#dbeafe;border-radius:6px;'>Click Next to continue.</div>"
+        else:
+            fb.innerHTML = "<div style='color:#10b981;font-weight:700;font-size:18px;padding:14px;background:#dcfce7;border-radius:8px;margin-top:10px;'>🎉 Congratulations! Problem completed!</div>"
+    
+    def make_next(self, idx):
+        """Create next step handler"""
+        def next_step(e):
+            self.app.solve_state[idx]["container"].style.display = "none"
+            if idx + 1 < len(self.app.solve_state):
+                self.show_step(idx + 1)
+            self.app.data_manager.save_to_storage(self.app)
+        return next_step
+    
+    def reset_attempts(self):
+        """Reset current problem attempts"""
+        if self.app.current_problem_index is None:
+            window.alert("⚠️ No problem is currently loaded.")
+            return
+
+        if not self.app.solve_state:
+            window.alert("⚠️ Problem not loaded yet.")
+            return
+
+        confirm_reset = window.confirm(
+            f"♻️ Reset progress for Problem {self.app.current_problem_index + 1}?\n\n"
+            "This will remove your saved progress."
+        )
+        if not confirm_reset:
+            return
+
+        if self.app.current_problem_index in self.app.problem_states:
+            del self.app.problem_states[self.app.current_problem_index]
+
+        for st in self.app.solve_state:
+            st["attempts"] = 0
+            st["attempt_history"] = []
+            st["correct"] = False
+            st["finalized"] = False
+            st["step_start_time"] = None
+
+            cnt = st["container"]
+            cnt.style.display = "none"
+
+            fb = cnt.querySelector(".step-feedback")
+            if fb:
+                fb.innerHTML = ""
+
+            history = cnt.querySelector(".attempts-history")
+            if history:
+                history.innerHTML = ""
+                history.style.display = "none"
+
+            if st.get("answer_mf"):
+                st["answer_mf"].latex("")
+
+            submit_btn = cnt.querySelector(".submitAnswer")
+            finalize_btn = cnt.querySelector(".finalizeStep")
+            next_btn = cnt.querySelector(".nextStep")
+
+            if submit_btn:
+                submit_btn.disabled = False
+                submit_btn.style.opacity = "1"
+
+            if finalize_btn:
+                finalize_btn.disabled = True
+                finalize_btn.style.opacity = "0.5"
+
+            if next_btn:
+                next_btn.style.display = "none"
+
+        self.app.problem_states[self.app.current_problem_index] = self.app.solve_state
+
+        self.app.data_manager.save_to_storage(self.app)
+
+        if self.app.solve_state:
+            self.show_step(0)
+            self.app.ui_controller.update_progress(self.app.current_problem_index)
+
+        window.alert(f"✅ Problem {self.app.current_problem_index + 1} has been reset!")
+        self.app.ui_controller.close_sidebar()
+
+class ProblemSolverApp:
+    """Main application class"""
+    
+    def __init__(self):
+        self.problem_set = []
+        self.problem_states = {}
+        self.solve_state = []
+        self.current_problem_index = None
+        self.current_problem_set_uuid = None
+        
+        # Initialize components
+        self.math_parser = MathParser()
+        self.data_manager = DataManager()
+        self.ui_controller = UIController(self)
+        self.problem_manager = ProblemManager(self)
+    
+    def update_status(self, msg):
+        """Update loading status"""
+        container = document.querySelector("#loadingStatus")
+        div = document.createElement("div")
+        div.appendChild(document.createTextNode(msg))
+        container.appendChild(div)
+    
+    def load_problem_json(self):
+        """Load problems from JSON input"""
+        txt = document.querySelector("#pasteJson").value.strip()
+        
+        if not txt:
+            window.alert("Paste JSON first")
+            return
+        
+        if self.problem_set and self.problem_states:
+            confirmed = window.confirm(
+                "⚠️ Load new problems?\n\n" +
+                f"You have progress on {len(self.problem_set)} problems.\n\n" +
+                "Continue loading?"
+            )
+            if not confirmed:
+                return
+        
+        try:
+            base64_data = self.problem_manager.extract_base64_from_text(txt)
+            
+            import brotli
+            compressed = base64.b64decode(base64_data)
+            json_text = brotli.decompress(compressed).decode("utf-8")
+            problems = json.loads(json_text)
+        except Exception as e:
+            window.alert(f"⚠️ Decode failed: {e}")
+            return
+        
+        self.problem_manager.load_problems_from_data(problems)
+    
+    def export_to_telegram(self):
+        """Export progress formatted for Telegram"""
+        if self.current_problem_index is not None and self.solve_state:
+            self.problem_states[self.current_problem_index] = self.solve_state
+
+        if not self.problem_set:
+            window.alert("No problems loaded. Load problems first!")
+            return
+            
+        phone = None
+        while not phone:
+            phone = window.prompt("Enter phone number (+628xxx):")
+            if not phone and not window.confirm("No phone number. Continue?"): 
+                return
+
+        problems_progress = []
+        total_time = 0.0
+        total_attempts = 0
+        total_finalized = 0
+        total_steps = 0
+
+        problem_set_id = self.current_problem_set_uuid
+        problem_set_description = getattr(window, 'current_problem_set_description', '') or ''
+
+        export_timestamp = str(window.Date.new().getTime())
+        export_id = f"export_{export_timestamp}_{len(self.problem_set)}_problems"
+
+        for prob_idx in range(len(self.problem_set)):
+            current_prob = self.problem_set[prob_idx]
+            problem_uuid = f"{problem_set_id or 'unknown'}_problem_{prob_idx + 1}"
+            problem_title = current_prob.get("title", f"Problem {prob_idx + 1}")
+            defined_steps = current_prob.get("steps", []) or []
+            steps_count = len(defined_steps)
+            prob_state = self.problem_states.get(prob_idx, [])
+
+            prob_total_time = 0.0
+            prob_total_attempts = 0
+            prob_finalized = 0
+            steps_progress = []
+
+            for i in range(steps_count):
+                if i < len(prob_state):
+                    st = prob_state[i]
+                    attempt_history = st.get("attempt_history", []) or []
+                    attempts_num = st.get("attempts", 0) or len(attempt_history)
+                    time_spent = round(sum(a.get("time_taken_seconds", 0) for a in attempt_history), 2)
+                    correct_flag = bool(st.get("correct", False))
+                    finalized_flag = bool(st.get("finalized", False))
+                else:
+                    attempt_history = []
+                    attempts_num = 0
+                    time_spent = 0.0
+                    correct_flag = False
+                    finalized_flag = False
+
+                prob_total_time += time_spent
+                prob_total_attempts += attempts_num
+                prob_finalized += 1 if finalized_flag else 0
+
+                step_def = defined_steps[i] if i < len(defined_steps) else {}
+                steps_progress.append({
+                    "step_number": i + 1,
+                    "description": step_def.get("description", []),
+                    "expression": step_def.get("expression", ""),
+                    "expected": step_def.get("expected", ""),
+                    "status": {
+                        "attempts": attempts_num,
+                        "correct": correct_flag,
+                        "finalized": finalized_flag,
+                        "time_spent_seconds": round(time_spent, 2)
+                    },
+                    "attempts": attempt_history
+                })
+
+            total_time += prob_total_time
+            total_attempts += prob_total_attempts
+            total_finalized += prob_finalized
+            total_steps += steps_count
+
+            problem_data = {
+                "problem_index": prob_idx,
+                "problem_number": prob_idx + 1,
+                "problem_id": problem_uuid,
+                "problem_title": problem_title,
+                "problem_description": current_prob.get("description", []),
+                "summary": {
+                    "total_steps": steps_count,
+                    "finalized_steps": prob_finalized,
+                    "correct_steps": sum(1 for s in steps_progress if s.get("status", {}).get("correct")),
+                    "total_attempts": prob_total_attempts,
+                    "total_time_seconds": round(prob_total_time, 2)
+                },
+                "steps_progress": steps_progress
+            }
+            problems_progress.append(problem_data)
+
+        export_data = {
+            "export_metadata": {
+                "export_date": window.Date.new().toISOString(),
+                "app_name": "Problem Solver",
+                "version": "2.0",
+                "student_phone": phone,
+                "export_type": "multi_problem",
+                "export_id": export_id,
+                "problem_set_id": problem_set_id,
+                "problem_set_description": problem_set_description
+            },
+            "problem_set_id": problem_set_id,
+            "problem_set_description": problem_set_description,
+            "export_id": export_id,
+            "overall_summary": {
+                "total_problems": len(problems_progress),
+                "total_steps": total_steps,
+                "finalized_steps": total_finalized,
+                "total_attempts": total_attempts,
+                "total_time_seconds": round(total_time, 2)
+            },
+            "problems": problems_progress
+        }
+
+        json_str = json.dumps(export_data)
+        import brotli
+        compressed = brotli.compress(json_str.encode('utf-8'))
+        b64_str = base64.b64encode(compressed).decode('utf-8')
+
+        TELEGRAM_MAX_LENGTH = 4096
+        header = "=== STUDENT PROGRESS EXPORT (Part {part}/{total}) ===\n"
+        footer = "\n=== END PART {part} ==="
+        reserved_space = len(header.format(part=99, total=99)) + len(footer.format(part=99))
+        chunk_size = TELEGRAM_MAX_LENGTH - reserved_space - 50
+
+        chunks = []
+        for i in range(0, len(b64_str), chunk_size):
+            chunks.append(b64_str[i:i+chunk_size])
+
+        total_chunks = len(chunks)
+        messages = []
+        for idx, chunk in enumerate(chunks, 1):
+            msg_header = f"=== STUDENT PROGRESS EXPORT (Part {idx}/{total_chunks}) ===\n"
+            msg_footer = f"\n=== END PART {idx} ==="
+            full_message = msg_header + chunk + msg_footer
+            messages.append({
+                "part": idx,
+                "total": total_chunks,
+                "content": full_message,
+                "length": len(full_message)
+            })
+
+        self.ui_controller.show_telegram_modal(messages, len(problems_progress), total_finalized, total_steps)
+        self.ui_controller.close_sidebar()
+    
+    def hide_loading(self):
+        """Hide loading overlay"""
+        overlay = document.querySelector("#loadingOverlay")
+        if overlay:
+            overlay.style.opacity = "0"
+            window.setTimeout(create_proxy(lambda: overlay.remove()), 400)
+    
+    def clear_storage(self):
+        """Clear all stored data"""
+        confirmed = window.confirm(
+            "⚠️ Clear all data?\n\n"
+            "This will permanently delete all saved progress and problem sets."
+        )
+        if not confirmed:
+            return
+        
+        window.localStorage.clear()
+        self.problem_set = []
+        self.problem_states = {}
+        self.solve_state = []
+        self.current_problem_index = None
+        self.current_problem_set_uuid = None
+        
+        # Reset UI
+        document.querySelector("#solveProblemsContainer").innerHTML = ""
+        document.querySelector("#initialLoadPanel").style.display = "block"
+        self.ui_controller.update_uuid_display("", "")
+        
+        window.alert("✅ All data cleared successfully!")
+    
+    def init(self):
+        """Initialize the application"""
+        self.update_status("⏳ Initializing components...")
+        
+        # Initialize MathQuill
+        self.ui_controller.init_mathquill()
+        
+        # Set up UI mode toggle
+        mobile_btn = document.querySelector('.ui-mode-btn[data-mode="mobile"]')
+        desktop_btn = document.querySelector('.ui-mode-btn[data-mode="desktop"]')
+        
+        mobile_btn.addEventListener("click", create_proxy(lambda e: self.ui_controller.set_ui_mode("mobile")))
+        desktop_btn.addEventListener("click", create_proxy(lambda e: self.ui_controller.set_ui_mode("desktop")))
+        
+        # Wire up UI elements
+        menu_btn = document.querySelector("#menuBtn")
+        menu_btn.addEventListener("click", create_proxy(lambda e: self.ui_controller.toggle_sidebar()))
+        
+        overlay = document.querySelector("#sidebarOverlay")
+        overlay.addEventListener("click", create_proxy(lambda e: self.ui_controller.close_sidebar()))
+        
+        # Wire up navigation
+        nav_items = document.querySelectorAll(".nav-item")
+        for item in nav_items:
+            page_name = item.getAttribute("data-page")
+            item.addEventListener("click", create_proxy(lambda e, pn=page_name: self.ui_controller.show_page(pn)))
+        
+        # Wire up load buttons
+        document.querySelector("#loadJsonBtn").addEventListener("click", create_proxy(lambda e: self.load_problem_json()))
+        document.querySelector("#resetSolveBtn").addEventListener("click", create_proxy(lambda e: self.problem_manager.reset_attempts()))
+        document.querySelector("#exportProgressBtn").addEventListener("click", create_proxy(lambda e: self.data_manager.export_progress(self)))
+        document.querySelector("#exportTelegramBtn").addEventListener("click", create_proxy(lambda e: self.export_to_telegram()))
+        
+        # Wire up file uploads
+        def handle_upload(event):
+            files = event.target.files
+            if files and files.length > 0:
+                self.problem_manager.handle_file_upload(files.item(0))
+        
+        upload = document.querySelector("#uploadFile")
+        if upload:
+            upload.addEventListener("change", create_proxy(handle_upload))
+        
+        # Wire up settings buttons
+        document.querySelector("#mobileModeBtn").addEventListener("click", create_proxy(lambda e: self.ui_controller.set_ui_mode("mobile")))
+        document.querySelector("#desktopModeBtn").addEventListener("click", create_proxy(lambda e: self.ui_controller.set_ui_mode("desktop")))
+        document.querySelector("#clearStorageBtn").addEventListener("click", create_proxy(lambda e: self.clear_storage()))
+        
+        self.update_status("⏳ Checking saved progress...")
+        loaded = self.data_manager.load_from_storage(self)
+        if loaded:
+            self.update_status("✓ Restored previous session")
+            self.problem_manager.render_problems()
+        else:
+            self.update_status("✓ Starting fresh session")
+        
+        self.update_status("✓ Ready!")
+        window.setTimeout(create_proxy(self.hide_loading), 600)
+
+# Initialize the application
+app = ProblemSolverApp()
+
+# Import required libraries
+import sympy as sp
+import brotli
+
+# Start the application
+window.setTimeout(create_proxy(app.init), 700)
+  </script>
+</body>
+</html>

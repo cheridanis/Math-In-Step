@@ -42,10 +42,9 @@ Start solving — no setup required!
 
 ## 🎯 Project Origin & Acknowledgement
 
-This **Math-In=Step** project is an outcome of **Pengabdian Kepada Masyarakat** (Community Service Activities)  
-conducted by the Computer Science Faculty of **Universitas Mercu Buana (UMB), Jakarta** in collaboration with **Dinas Pendidikan Provinsi DKI Jakarta c.q. Suku Dinas Pendidikan Wilayah II Jakarta Barat**.  
-As part of UMB's commitment to community and educational outreach,  
-this tool was developed to support mathematics learning in schools and communities.
+This **Math-In=Step** project is an outcome of **Pengabdian Kepada Masyarakat** (Community Service Activities) conducted by the Computer Science Faculty of **Universitas Mercu Buana (UMB), Jakarta**, in collaboration with **Dinas Pendidikan Provinsi DKI Jakarta c.q. Suku Dinas Pendidikan Wilayah II Jakarta Barat**  
+
+As part of UMB's commitment to community and educational outreach, this tool was developed to support mathematics learning in schools and communities.
 
 We gratefully acknowledge the support from UMB and all participating faculty, staff, and students.
 

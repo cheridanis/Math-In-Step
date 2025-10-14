@@ -25,6 +25,150 @@ window.MathJax = {
 /* =========================================
    GLOBAL RESET
    ========================================= */
+/* =========================================
+   STARTUP MODAL
+   ========================================= */
+.startup-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: sans-serif;
+}
+
+.startup-modal {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.startup-modal h2 {
+    margin: 0 0 20px 0;
+    color: #0f172a;
+    font-size: 24px;
+}
+
+.startup-modal p {
+    margin: 0 0 20px 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.saved-sessions-list {
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.session-item {
+    padding: 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+}
+
+.session-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateX(4px);
+}
+
+.session-item.selected {
+    border-color: #3b82f6;
+    background: #dbeafe;
+}
+
+.session-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.session-info {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.modal-btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.modal-btn-primary:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.modal-btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.modal-btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-state-text {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: #64748b;
+}
+
+.empty-state-subtext {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
 body {
     font-family: "Inter", "Segoe UI", Arial, sans-serif;
     background: #f3f4f6;
@@ -882,6 +1026,139 @@ class RosterManager:
         return html.escape(str(text or ""))
                        
 class ProgressAnalyzer:
+    # ============================================================
+    # PARSE SUBMISSIONS
+    # ============================================================
+    def parse_submissions(self, text):
+        """Parse submissions with detailed debugging"""
+        import re, json
+        from js import window
+
+        window.console.log("\n" + "=" * 80)
+        window.console.log("🔍 PARSE_SUBMISSIONS CALLED")
+        window.console.log("=" * 80)
+
+        subs, invalid = [], []
+        if not text or not text.strip():
+            return {"submissions": [], "invalid": [{"error": "Empty input"}], "total": 0}
+
+        window.console.log(f"📝 Input text length: {len(text)} characters")
+
+        # 1️⃣ Find all header/footer export blocks
+        export_blocks = list(re.finditer(
+            r"===\s*STUDENT\s+PROGRESS\s+EXPORT\s*===\s*(.*?)\s*===\s*END\s+EXPORT\s*===",
+            text, re.DOTALL | re.IGNORECASE
+        ))
+
+        window.console.log(f"🔍 Found {len(export_blocks)} export blocks")
+
+        # 2️⃣ Process each header/footer export block
+        for block_idx, block in enumerate(export_blocks):
+            window.console.log(f"\n--- Processing block {block_idx + 1}/{len(export_blocks)} ---")
+
+            b64 = re.sub(r"[\s\r\n]+", "", block.group(1))
+            window.console.log(f"📦 Base64 length: {len(b64)}")
+
+            start_idx = block.start()
+            phone = self.extract_phone_from_context(text, start_idx)
+            window.console.log(f"📱 Extracted phone: {phone}")
+
+            data, fmt = self.decode_base64_data(b64)
+            window.console.log(f"📊 Decode result: {fmt}")
+
+            if data:
+                window.console.log(f"✅ Successfully decoded data")
+                window.console.log(f"📋 Data type: {type(data)}")
+
+                if isinstance(data, dict):
+                    window.console.log(f"🔑 Data keys: {list(data.keys())}")
+
+                    # ✅ Detect format version
+                    if "problem_states" in data:
+                        window.console.log("🆕 Detected NEW export format (v2.0)")
+                        try:
+                            new_subs = self.process_export_data(data, "new_format", phone)
+                            window.console.log(f"✅ Created {len(new_subs)} submissions from NEW format")
+                            subs.extend(new_subs)
+                        except Exception as e:
+                            window.console.error(f"❌ Error processing NEW format: {e}")
+                            import traceback
+                            window.console.error(traceback.format_exc())
+                            invalid.append({
+                                "error": f"NEW format processing error: {e}",
+                                "student_phone": phone,
+                                "source": "header_block"
+                            })
+
+                    elif "problems" in data:
+                        window.console.log("📦 Detected OLD export format (v1.0)")
+                        try:
+                            old_subs = self.process_export_data_old(data, fmt, phone)
+                            window.console.log(f"✅ Created {len(old_subs)} submissions from OLD format")
+                            subs.extend(old_subs)
+                        except Exception as e:
+                            window.console.error(f"❌ Error processing OLD format: {e}")
+                            invalid.append({
+                                "error": f"OLD format processing error: {e}",
+                                "student_phone": phone,
+                                "source": "header_block"
+                            })
+                    else:
+                        window.console.error("❌ Unknown export format - no 'problem_states' or 'problems' key")
+                        invalid.append({
+                            "error": f"Unknown export format. Keys: {list(data.keys())}",
+                            "student_phone": phone,
+                            "source": "header_block"
+                        })
+                else:
+                    window.console.error(f"❌ Data is not a dictionary: {type(data)}")
+                    invalid.append({
+                        "error": f"Invalid data type: {type(data)}",
+                        "student_phone": phone,
+                        "source": "header_block"
+                    })
+            else:
+                window.console.error(f"❌ Failed to decode data: {fmt}")
+                snippet = text[max(0, start_idx - 200):start_idx + 200]
+                invalid.append({
+                    "error": fmt,
+                    "student_phone": phone,
+                    "source": "header_block",
+                    "raw_excerpt": snippet.strip()
+                })
+
+        # 3️⃣ Handle stray base64 chunks
+        stray_matches = list(re.finditer(r"\b[A-Za-z0-9+/=]{80,}\b", text))
+        window.console.log(f"\n🔍 Found {len(stray_matches)} potential stray base64 chunks")
+
+        for match in stray_matches:
+            # Skip base64 inside already processed blocks
+            if any(b.start() <= match.start() <= b.end() for b in export_blocks):
+                continue
+
+            window.console.log(f"📦 Processing stray chunk at position {match.start()}")
+            clean = re.sub(r"[\s\r\n]+", "", match.group(0))
+            phone = self.extract_phone_from_context(text, match.start())
+            data, fmt = self.decode_base64_data(clean)
+
+            if data:
+                if "problem_states" in data:
+                    window.console.log("🆕 Stray chunk is NEW format")
+                    subs.extend(self.process_export_data(data, "new_format", phone))
+                elif "problems" in data:
+                    window.console.log("📦 Stray chunk is OLD format")
+                    subs.extend(self.process_export_data_old(data, fmt, phone))
+
+        total = len(subs) + len(invalid)
+        window.console.log(f"\n" + "=" * 80)
+        window.console.log(f"🎉 PARSING COMPLETE")
+        window.console.log(f"✅ Valid submissions: {len(subs)}")
+        window.console.log(f"❌ Invalid entries: {len(invalid)}")
+        window.console.log(f"📊 Total: {total}")
+        window.console.log("=" * 80 + "\n")
+
+        return {"submissions": subs, "invalid": invalid, "total": total}
+
     def __init__(self):
         self.app = None
         self.analytics_data = []
@@ -1080,98 +1357,165 @@ class ProgressAnalyzer:
     # PROCESS EXPORT DATA
     # ============================================================
     def process_export_data(self, data, format_type, phone_from_message=None, telegram_parts=0):
+        """Process the NEW export format from Problem Solver app with extensive debugging"""
         import json, hashlib
         from js import window
 
-        subs = []
-        export_timestamp = str(window.Date.new().getTime())
-        export_content = json.dumps(data.get("export_metadata", {}), sort_keys=True)
-        export_id = hashlib.md5((export_timestamp + export_content).encode()).hexdigest()
+        window.console.log("=" * 60)
+        window.console.log("🔍 PROCESS_EXPORT_DATA CALLED")
+        window.console.log("=" * 60)
 
-        if isinstance(data.get("problems"), list):
-            export_meta = data.get("export_metadata", {}) or {}
-            phone = phone_from_message if phone_from_message else (self.normalize_phone(export_meta.get("student_phone", "")) or "anonymous")
+        # Log the raw data structure
+        window.console.log(f"📦 Data type: {type(data)}")
+        window.console.log(f"📦 Data keys: {list(data.keys()) if isinstance(data, dict) else 'NOT A DICT'}")
 
-            for p in data["problems"]:
-                problem_id = p.get("problem_id")
-                steps = p.get("steps_progress", []) or []
-                prob_num = p.get("problem_number") or (p.get("problem_index", 0) + 1 if p.get("problem_index") is not None else len(subs) + 1)
+        # Check for key fields
+        has_problem_states = "problem_states" in data if isinstance(data, dict) else False
+        has_problem_set = "problem_set" in data if isinstance(data, dict) else False
+        has_problems = "problems" in data if isinstance(data, dict) else False
 
+        window.console.log(f"✓ Has problem_states: {has_problem_states}")
+        window.console.log(f"✓ Has problem_set: {has_problem_set}")
+        window.console.log(f"✓ Has problems (old format): {has_problems}")
+
+        # If it's the NEW format
+        if has_problem_states and has_problem_set:
+            window.console.log("🆕 Processing NEW format (v2.0)")
+
+            subs = []
+            export_timestamp = str(window.Date.new().getTime())
+
+            # Generate export ID
+            export_id_source = f"{data.get('problem_set_id', '')}_{data.get('export_date', '')}_{export_timestamp}"
+            export_id = hashlib.md5(export_id_source.encode()).hexdigest()
+            window.console.log(f"🆔 Export ID: {export_id}")
+
+            # Extract metadata
+            problem_set_id = data.get("problem_set_id", "unknown")
+            export_date = data.get("export_date", window.Date.new().toISOString())
+            problem_set = data.get("problem_set", [])
+            problem_states = data.get("problem_states", {})
+
+            window.console.log(f"📋 Problem set ID: {problem_set_id}")
+            window.console.log(f"📅 Export date: {export_date}")
+            window.console.log(f"📚 Problem set length: {len(problem_set)}")
+            window.console.log(f"📊 Problem states keys: {list(problem_states.keys())}")
+
+            # Determine phone number
+            phone = phone_from_message if phone_from_message else "anonymous"
+            window.console.log(f"📱 Phone: {phone}")
+
+            # Process each problem
+            for prob_idx_str, step_states in problem_states.items():
+                window.console.log(f"\n--- Processing problem index: {prob_idx_str} ---")
+
+                prob_idx = int(prob_idx_str)
+                window.console.log(f"📍 Problem index (int): {prob_idx}")
+                window.console.log(f"📍 Number of steps: {len(step_states)}")
+
+                # Get problem definition
+                if prob_idx >= len(problem_set):
+                    window.console.warn(f"⚠️ Problem index {prob_idx} out of range (problem_set length: {len(problem_set)})")
+                    continue
+
+                problem_def = problem_set[prob_idx]
+                window.console.log(f"📖 Problem definition keys: {list(problem_def.keys())}")
+
+                problem_title = problem_def.get("title", f"Problem {prob_idx + 1}")
+                window.console.log(f"📝 Problem title: {problem_title}")
+
+                # Calculate summary statistics
+                total_steps = len(step_states)
+                finalized_steps = sum(1 for s in step_states if s.get("finalized", False))
+                correct_steps = sum(1 for s in step_states if s.get("correct", False))
+                total_attempts = sum(s.get("attempts", 0) for s in step_states)
+                total_finalize_attempts = sum(s.get("finalize_attempts", 0) for s in step_states)
+
+                window.console.log(f"📊 Statistics:")
+                window.console.log(f"  - Total steps: {total_steps}")
+                window.console.log(f"  - Finalized: {finalized_steps}")
+                window.console.log(f"  - Correct: {correct_steps}")
+                window.console.log(f"  - Total attempts: {total_attempts}")
+                window.console.log(f"  - Total finalize attempts: {total_finalize_attempts}")
+
+                # Build steps progress array
+                steps_progress = []
+                for step_idx, step_state in enumerate(step_states):
+                    window.console.log(f"  📌 Step {step_idx + 1}:")
+                    window.console.log(f"    - Keys: {list(step_state.keys())}")
+                    window.console.log(f"    - Finalized: {step_state.get('finalized', False)}")
+                    window.console.log(f"    - Correct: {step_state.get('correct', False)}")
+                    window.console.log(f"    - Attempts: {len(step_state.get('attempt_history', []))}")
+
+                    step_progress = {
+                        "step_number": step_idx + 1,
+                        "finalized": step_state.get("finalized", False),
+                        "correct": step_state.get("correct", False),
+                        "structure_correct": step_state.get("structure_correct", False),
+                        "attempts": []
+                    }
+
+                    # Add attempt history
+                    attempt_history = step_state.get("attempt_history", [])
+                    for att_idx, attempt in enumerate(attempt_history):
+                        window.console.log(f"      ✏️ Attempt {att_idx + 1}: {attempt.get('correct', False)}")
+                        step_progress["attempts"].append({
+                            "answer_latex": attempt.get("answer_latex", ""),
+                            "expression": step_state.get("step", {}).get("expression", ""),
+                            "correct": attempt.get("correct", False),
+                            "time_taken_seconds": attempt.get("time_taken_seconds", 0)
+                        })
+
+                    steps_progress.append(step_progress)
+
+                # Build submission object
                 sub = {
                     "export_id": export_id,
-                    "export_metadata": dict(export_meta),
-                    "student_phone": phone,
-                    "student_name": export_meta.get("student_name", "Unknown"),
-                    "problem": {
-                        "number": prob_num,
-                        "title": p.get("problem_title", "") or p.get("title", ""),
-                        "id": problem_id
+                    "export_metadata": {
+                        "problem_set_id": problem_set_id,
+                        "export_date": export_date,
+                        "format_version": "2.0",
+                        "student_phone": phone,
+                        "student_name": "Unknown"
                     },
-                    "summary": p.get("summary", {}),
-                    "steps_progress": steps,
+                    "student_phone": phone,
+                    "student_name": "Unknown",
+                    "problem": {
+                        "number": prob_idx + 1,
+                        "title": problem_title,
+                        "id": problem_set_id + "_" + str(prob_idx)
+                    },
+                    "summary": {
+                        "total_steps": total_steps,
+                        "finalized_steps": finalized_steps,
+                        "correct_steps": correct_steps,
+                        "total_attempts": total_attempts,
+                        "total_finalize_attempts": total_finalize_attempts,
+                        "completion_rate": round((finalized_steps / total_steps * 100) if total_steps > 0 else 0, 2)
+                    },
+                    "steps_progress": steps_progress,
                     "total_time_seconds": 0,
                     "analysis_timestamp": window.Date.new().toISOString()
                 }
+
+                window.console.log(f"✅ Created submission for problem {prob_idx + 1}")
                 subs.append(sub)
+
+            window.console.log(f"\n🎉 Total submissions created: {len(subs)}")
+            window.console.log("=" * 60)
             return subs
 
-        return [data]
+        # If it's the OLD format
+        elif has_problems:
+            window.console.log("📦 Processing OLD format (v1.0)")
+            return self.process_export_data_old(data, format_type, phone_from_message)
 
-    # ============================================================
-    # PARSE SUBMISSIONS
-    # ============================================================
-    def parse_submissions(self, text):
-        import re, json
-        subs, invalid = [], []
-        if not text or not text.strip():
-            return {"submissions": [], "invalid": [{"error": "Empty input"}], "total": 0}
-
-        # 1️⃣ Find all header/footer export blocks
-        export_blocks = list(re.finditer(
-            r"===\s*STUDENT\s+PROGRESS\s+EXPORT\s*===\s*(.*?)\s*===\s*END\s+EXPORT\s*===",
-            text, re.DOTALL | re.IGNORECASE
-        ))
-
-        # 2️⃣ Process each header/footer export block
-        for block in export_blocks:
-            b64 = re.sub(r"[\s\r\n]+", "", block.group(1))
-            start_idx = block.start()
-            phone = self.extract_phone_from_context(text, start_idx)
-            data, fmt = self.decode_base64_data(b64)
-            if data:
-                subs += self.process_export_data(data, fmt, phone)
-            else:
-                snippet = text[max(0, start_idx - 200):start_idx + 200]
-                invalid.append({
-                    "error": fmt,
-                    "student_phone": phone,
-                    "source": "header_block",
-                    "raw_excerpt": snippet.strip()
-                })
-
-        # 3️⃣ Handle stray base64 chunks (no header/footer)
-        for match in re.finditer(r"\b[A-Za-z0-9+/=]{80,}\b", text):
-            # Skip base64 inside already processed blocks
-            if any(b.start() <= match.start() <= b.end() for b in export_blocks):
-                continue
-            clean = re.sub(r"[\s\r\n]+", "", match.group(0))
-            phone = self.extract_phone_from_context(text, match.start())
-            data, fmt = self.decode_base64_data(clean)
-            if data:
-                subs += self.process_export_data(data, fmt, phone)
-            else:
-                snippet = text[max(0, match.start() - 200):match.start() + 200]
-                invalid.append({
-                    "error": fmt,
-                    "student_phone": phone,
-                    "source": "stray_chunk",
-                    "raw_excerpt": snippet.strip()
-                })
-
-        total = len(subs) + len(invalid)
-        return {"submissions": subs, "invalid": invalid, "total": total}
-
-    # ============================================================
+        # Unknown format
+        else:
+            window.console.error("❌ Unknown export format!")
+            window.console.error(f"Data structure: {json.dumps(data, indent=2)[:500]}")
+            return []
+                       # ============================================================
     # MERGE ROSTER DATA
     # ============================================================
     def merge_roster_data(self, submissions):
@@ -1671,32 +2015,49 @@ class DisplayManager:
     # STEP TABLE (Flags)
     # =====================================================
     def create_steps_table_html(self, steps):
+        """Enhanced step display with finalize attempts"""
         html_content = """
         <table style='width:100%;border-collapse:collapse;font-size:13px;'>
             <thead>
                 <tr style='background:#fafafa;'>
                     <th style='padding:6px;text-align:left;'>Step</th>
+                    <th style='padding:6px;text-align:center;'>Status</th>
                     <th style='padding:6px;text-align:left;'>Attempts</th>
                 </tr>
             </thead>
             <tbody>
         """
+
         for step in steps:
             step_no = step.get("step_number", "?")
             finalized = step.get("finalized", False)
+            correct = step.get("correct", False)
+            structure_correct = step.get("structure_correct", False)
+
+            # Status badge
+            if finalized and structure_correct:
+                status = "<span style='color:#059669;font-weight:600;'>✅ Finalized</span>"
+            elif correct:
+                status = "<span style='color:#d97706;font-weight:600;'>⚠️ Correct but not finalized</span>"
+            else:
+                status = "<span style='color:#dc2626;font-weight:600;'>❌ Incomplete</span>"
+
+            # Attempts display
             attempts_html = "<div style='display:flex;flex-wrap:wrap;gap:8px;align-items:center;'>"
             for att in step.get("attempts", []):
                 raw = att.get("answer_latex") or att.get("expression") or ""
                 latex_fixed = self.app.progress_analyzer.detect_and_convert_matrix(raw)
-                correct = att.get("correct", False)
-                if correct and finalized:
+                is_correct = att.get("correct", False)
+
+                if is_correct and finalized:
                     flag_text, flag_color = "🔒 Finalized", "#166534"
-                elif correct and not finalized:
+                elif is_correct and not finalized:
                     flag_text, flag_color = "✅ Correct", "#15803d"
-                elif not correct and finalized:
+                elif not is_correct and finalized:
                     flag_text, flag_color = "⚠️ False Finalized", "#b45309"
                 else:
                     flag_text, flag_color = "❌ False", "#991b1b"
+
                 attempts_html += f"""
                     <div style='border:1px solid #e5e7eb;padding:6px 10px;border-radius:6px;background:#fff;
                                  min-width:110px;text-align:center;'>
@@ -1705,17 +2066,20 @@ class DisplayManager:
                     </div>
                 """
             attempts_html += "</div>"
+
             if not step.get("attempts"):
                 attempts_html = "<em style='color:#9ca3af;'>No attempts</em>"
+
             html_content += f"""
                 <tr>
-                    <td style='padding:8px;vertical-align:top;'>{step_no}</td>
+                    <td style='padding:8px;vertical-align:top;font-weight:600;'>{step_no}</td>
+                    <td style='padding:8px;vertical-align:top;text-align:center;'>{status}</td>
                     <td style='padding:8px;vertical-align:top;'>{attempts_html}</td>
                 </tr>
             """
+
         html_content += "</tbody></table>"
         return html_content
-
     # =====================================================
     # STATUS TABLE (🆕 includes Ignored column)
     # =====================================================
@@ -1925,6 +2289,210 @@ class DisplayManager:
 
 class PersistenceManager:
     """Manages analytics data persistence with IndexedDB + interactive save popup (overwrite-safe)."""
+    # Add this helper method to PersistenceManager
+    def _show_loading_in_modal(self, modal, message):
+        """Show loading state in modal"""
+        modal.innerHTML = f'''
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner" style="margin: 0 auto 20px auto;"></div>
+                <div style="font-size: 16px; color: #64748b;">{message}</div>
+            </div>
+        '''
+    # =========================================================
+    # STARTUP MODAL
+    # =========================================================
+    async def show_startup_modal(self):
+        """Show modal on startup to load saved analytics"""
+        from js import document, window
+        from pyodide.ffi import create_proxy
+        import asyncio
+
+        window.console.log("🚀 Showing startup modal...")
+
+        # Remove any existing modal
+        old_modal = document.querySelector("#startup-modal-overlay")
+        if old_modal:
+            old_modal.remove()
+
+        # Get list of saved sessions
+        saved_keys = await self.list_saved_keys("analytics")
+        window.console.log(f"📋 Found {len(saved_keys)} saved sessions")
+
+        # Create modal overlay
+        overlay = document.createElement("div")
+        overlay.id = "startup-modal-overlay"
+        overlay.className = "startup-modal-overlay"
+
+        # Create modal content
+        modal = document.createElement("div")
+        modal.className = "startup-modal"
+
+        # Build modal HTML based on whether there are saved sessions
+        if saved_keys:
+            # ✅ HAS SAVED SESSIONS
+            sessions_html = '<div class="saved-sessions-list">'
+            for key in saved_keys:
+                sessions_html += f'''
+                    <div class="session-item" data-key="{self._escape(key)}">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="session-name">📊 {self._escape(key)}</div>
+                                <div class="session-info">Saved analytics session</div>
+                            </div>
+                            <button class="delete-session-btn" data-key="{self._escape(key)}" 
+                                    style="background: transparent; border: none; color: #dc2626; 
+                                           cursor: pointer; font-size: 20px; padding: 4px 8px;"
+                                    title="Delete this session">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                '''
+            sessions_html += '</div>'
+
+            modal.innerHTML = f'''
+                <h2>📂 Load Saved Analytics</h2>
+                <p>Select a saved analytics session to continue, or start fresh.</p>
+                {sessions_html}
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-primary" id="load-selected-btn" disabled>
+                        📂 Load Selected
+                    </button>
+                    <button class="modal-btn modal-btn-secondary" id="start-fresh-btn">
+                        🆕 Start Fresh
+                    </button>
+                </div>
+            '''
+        else:
+            # ❌ NO SAVED SESSIONS
+            modal.innerHTML = '''
+                <h2>📂 Welcome to Analytics</h2>
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text">No saved sessions found</div>
+                    <div class="empty-state-subtext">Start by analyzing student progress data</div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-primary" id="start-fresh-btn">
+                        ✨ Get Started
+                    </button>
+                </div>
+            '''
+
+        overlay.appendChild(modal)
+        document.body.appendChild(overlay)
+
+        # Create future for async waiting
+        future = asyncio.get_event_loop().create_future()
+
+        # Track selected session
+        selected_key = [None]  # Use list for mutable closure
+
+        def close_modal(result=None):
+            if not future.done():
+                future.set_result(result)
+            overlay.remove()
+
+        # ✅ HANDLE SAVED SESSIONS LOGIC
+        if saved_keys:
+            session_items = modal.querySelectorAll(".session-item")
+            load_btn = modal.querySelector("#load-selected-btn")
+
+            # Handle session item clicks
+            def handle_session_click(event):
+                # Remove previous selection
+                for i in range(session_items.length):
+                    session_items[i].classList.remove("selected")
+
+                # Add selection to clicked item
+                target = event.currentTarget
+                target.classList.add("selected")
+                selected_key[0] = target.getAttribute("data-key")
+
+                # Enable load button
+                if load_btn:
+                    load_btn.disabled = False
+
+            # Add click handlers to all session items
+            for i in range(session_items.length):
+                session_items[i].addEventListener("click", create_proxy(handle_session_click))
+
+            # Handle load button click
+            def handle_load(event):
+                if selected_key[0]:
+                    close_modal(selected_key[0])
+
+            if load_btn:
+                load_btn.addEventListener("click", create_proxy(handle_load))
+
+            # After setting up session item clicks, add delete button handlers:
+            delete_btns = modal.querySelectorAll(".delete-session-btn")
+
+            async def handle_delete(event):
+                event.stopPropagation()  # Don't trigger session selection
+                btn = event.currentTarget
+                key_to_delete = btn.getAttribute("data-key")
+
+                if window.confirm(f"Delete session '{key_to_delete}'?"):
+                    try:
+                        await self.db_manager.delete_data("analytics", key_to_delete)
+                        window.console.log(f"🗑️ Deleted session: {key_to_delete}")
+
+                        # Remove from UI
+                        session_item = btn.closest(".session-item")
+                        if session_item:
+                            session_item.remove()
+
+                        # If no more sessions, update modal
+                        remaining = modal.querySelectorAll(".session-item")
+                        if remaining.length == 0:
+                            close_modal(None)  # Close and start fresh
+
+                    except Exception as e:
+                        window.console.error(f"❌ Delete failed: {e}")
+                        window.alert(f"Failed to delete: {e}")
+
+            for i in range(delete_btns.length):
+                delete_btns[i].addEventListener("click", create_proxy(handle_delete))
+                       
+        # ✅ HANDLE START FRESH BUTTON (always present)
+        start_fresh_btn = modal.querySelector("#start-fresh-btn")
+        if start_fresh_btn:
+            start_fresh_btn.addEventListener("click", create_proxy(lambda e: close_modal(None)))
+
+        # Wait for user choice
+        chosen_key = await future
+        window.console.log(f"👤 User chose: {chosen_key if chosen_key else 'start fresh'}")
+
+        return chosen_key
+
+    # =========================================================
+    # LOAD SPECIFIC SESSION
+    # =========================================================
+    async def load_specific_session(self, key):
+        """Load a specific analytics session by key"""
+        from js import window
+        import json
+
+        try:
+            window.console.log(f"📂 Loading session: {key}")
+            data = await self.load_analytics_data(key)
+
+            if data and isinstance(data, list):
+                window.console.log(f"✅ Loaded {len(data)} entries from '{key}'")
+                return data
+            else:
+                window.console.warn(f"⚠️ No data found for key '{key}'")
+                return []
+
+        except Exception as e:
+            window.console.error(f"❌ Failed to load session '{key}': {e}")
+            return []
+
+    def _escape(self, text):
+        """Escape HTML text"""
+        import html
+        return html.escape(str(text or ""))
 
     def __init__(self):
         self.app = None
@@ -2128,13 +2696,48 @@ class PersistenceManager:
             return []
 
     # =========================================================
+    # SANITIZE
+    # =========================================================
+    def sanitize_for_storage(self, data):
+        import js, datetime
+        from js import window
+
+        def safe_convert(obj):
+            if obj is None or isinstance(obj, (int, float, str, bool)):
+                return obj
+            if isinstance(obj, dict):
+                return {str(k): safe_convert(v) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple, set)):
+                return [safe_convert(v) for v in obj]
+            if hasattr(obj, "to_py"):
+                try:
+                    return safe_convert(obj.to_py())
+                except Exception:
+                    return str(obj)
+            if isinstance(obj, datetime.datetime):
+                return obj.isoformat()
+            try:
+                if hasattr(js, "Date") and isinstance(obj, js.Date):
+                    return js.Date(obj).toISOString()
+            except Exception:
+                pass
+            return str(obj)
+
+        try:
+            return safe_convert(data)
+        except Exception as e:
+            window.console.warn(f"⚠️ sanitize_for_storage failed: {e}")
+            return []                       
+                       
+    # =========================================================
     # SAVE ANALYTICS (Interactive)
     # =========================================================
     async def save_analytics_data(self):
-        """Ask user for save name, handle overwrite confirmation, then save."""
+        """Save analytics data with interactive prompt"""
         from js import window
         import json
 
+        # Show the existing save prompt
         chosen_key = await self.prompt_save_choice()
         if not chosen_key:
             window.console.log("💡 Save cancelled by user")
@@ -2147,9 +2750,13 @@ class PersistenceManager:
 
             await self.db_manager.save_data("analytics", chosen_key, js_text)
             window.console.log(f"💾 Saved {len(safe_data)} entries under key '{chosen_key}'")
+
+            # Show success message
+            window.alert(f"✅ Analytics saved successfully!\n\nSession name: {chosen_key}")
+
         except Exception as e:
             window.console.warn(f"⚠️ Could not save: {e}")
-
+            window.alert(f"❌ Save failed: {e}")
     # =========================================================
     # LOAD ANALYTICS
     # =========================================================
@@ -2184,55 +2791,30 @@ class PersistenceManager:
     # RESTORE ON STARTUP
     # =========================================================
     async def restore_saved_analytics(self):
-        loaded = await self.load_analytics_data()
-        if loaded:
-            self.app.analytics_data = loaded
-            self.app.progress_analyzer.analytics_data = loaded
-            self.app.display_manager.display_analytics(loaded, [])
-            from js import window
-            window.console.log("📊 Displayed restored analytics")
-
-    # =========================================================
-    # SANITIZE DATA
-    # =========================================================
-    def sanitize_for_storage(self, data):
-        """Recursively make analytics data JSON-safe for IndexedDB."""
-        import js, datetime
+        """Show startup modal and restore selected session"""
         from js import window
 
-        def safe_convert(obj):
-            if obj is None or isinstance(obj, (int, float, str, bool)):
-                return obj
-            if isinstance(obj, dict):
-                clean = {}
-                for k, v in obj.items():
-                    try:
-                        clean[str(k)] = safe_convert(v)
-                    except:
-                        clean[str(k)] = str(v)
-                return clean
-            if isinstance(obj, (list, tuple, set)):
-                return [safe_convert(v) for v in obj]
-            if hasattr(obj, "to_py"):
-                try:
-                    return safe_convert(obj.to_py())
-                except:
-                    return str(obj)
-            if isinstance(obj, datetime.datetime):
-                return obj.isoformat()
-            try:
-                if hasattr(js, "Date") and isinstance(obj, js.Date):
-                    return js.Date(obj).toISOString()
-            except:
-                pass
-            return str(obj)
+        # Show modal and get user choice
+        chosen_key = await self.show_startup_modal()
 
-        try:
-            return safe_convert(data)
-        except Exception as e:
-            window.console.warn(f"⚠️ sanitize_for_storage failed: {e}")
-            return []
+        if chosen_key:
+            # User selected a saved session
+            window.console.log(f"📂 User selected: {chosen_key}")
+            loaded_data = await self.load_specific_session(chosen_key)
 
+            if loaded_data:
+                self.app.analytics_data = loaded_data
+                self.app.progress_analyzer.analytics_data = loaded_data
+                self.app.display_manager.display_analytics(loaded_data, [])
+                window.console.log(f"✅ Restored {len(loaded_data)} analytics entries")
+            else:
+                window.console.log("⚠️ No data loaded, starting fresh")
+        else:
+            # User chose to start fresh
+            window.console.log("🆕 User chose to start fresh")
+            self.app.analytics_data = []
+            self.app.progress_analyzer.analytics_data = []
+            self.app.display_manager.display_analytics([], [])
 class AnalyticsApp:
     def __init__(self):
         self.roster_manager = RosterManager()

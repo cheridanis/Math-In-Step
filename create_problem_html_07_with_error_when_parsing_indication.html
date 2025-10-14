@@ -916,13 +916,28 @@ class Step:
     # ---------------------------------------------------------
 
     def get_data(self):
+        """Get step data including expected_structure but NOT expected answer for export"""
+        expected_l = self.expected_mf.latex().strip() if self.expected_mf else ""
+        expected_structure = None
+
+        # Calculate expected_structure if expected answer exists
+        if expected_l:
+            try:
+                parsed = self.math_parser.parse_latex(expected_l)
+                if parsed is not None:
+                    expected_structure = self.math_parser.extract_structure(parsed)
+                    window.console.log(f"Computed expected_structure: {expected_structure}")
+            except Exception as e:
+                window.console.log(f"Could not compute expected_structure: {e}")
+                expected_structure = None
+
         return {
             "description": serialize_content(self.description_el),
             "expression": self.expr_mf.latex().strip() if self.expr_mf else "",
-            "expected": self.expected_mf.latex().strip() if self.expected_mf else "",
+            # ⭐ REMOVED: "expected": expected_l,  # Do NOT export expected answer
+            "expected_structure": expected_structure,  # ⭐ Only export structure
             "user_answer": self.user_mf.latex().strip() if self.user_mf else "",
         }
-
     def load_data(self, data):
         if self.description_el:
             self.description_el.innerHTML = ""
@@ -1220,6 +1235,7 @@ class DataManager:
                         el.classList.remove("input-empty", "input-invalid", "input-valid")
 
         # Validation loop
+        # Validation loop
         for p_index, problem in enumerate(problems, start=1):
             prob_desc_el = problem.dom_element.querySelector(".prob-desc")
             desc_text = prob_desc_el.textContent.strip() if prob_desc_el else ""
@@ -1271,6 +1287,16 @@ class DataManager:
                     if math_parser.final_eq(expr_norm, exp_norm):
                         expr_el.classList.add("input-valid")
                         exp_el.classList.add("input-valid")
+
+                        # ⭐ NEW: Verify expected_structure can be computed
+                        try:
+                            test_structure = math_parser.extract_structure(exp_val)
+                            if not test_structure or (not test_structure.get("operators") and not test_structure.get("operands")):
+                                invalid_entries.append(f"Problem {p_index}, Step {s_index}: could not extract structure")
+                                exp_el.classList.add("input-invalid")
+                        except Exception as struct_err:
+                            invalid_entries.append(f"Problem {p_index}, Step {s_index}: structure extraction failed - {struct_err}")
+                            exp_el.classList.add("input-invalid")
                     else:
                         invalid_entries.append(f"Problem {p_index}, Step {s_index}: expression ≠ expected")
                         expr_el.classList.add("input-invalid")
@@ -1280,7 +1306,6 @@ class DataManager:
                     invalid_entries.append(f"Problem {p_index}, Step {s_index}: {e}")
                     expr_el.classList.add("input-invalid")
                     exp_el.classList.add("input-invalid")
-
         # If invalid entries found
         if invalid_entries:
             self._show_popup(

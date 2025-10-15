@@ -307,73 +307,94 @@ class MathParser:
     """Handles LaTeX parsing, structural comparison, and error popups"""
 
     GRAMMAR = r"""
-    start: matrix_ops
-         | expr
+start: matrix_ops
+     | expr
 
-    ?expr: sum
+?expr: sum
 
-    ?sum: sum "+" product   -> add
-        | sum "-" product   -> sub
-        | product
+?sum: sum "+" product   -> add
+    | sum "-" product   -> sub
+    | product
 
-    ?product: scalar matrix                 -> scalar_matrix_mul
-            | scalar matrix_env             -> scalar_matrix_mul
-            | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
-            | product "/" implicit                                      -> div
-            | implicit
+?product: scalar matrix                 -> scalar_matrix_mul
+        | scalar matrix_env             -> scalar_matrix_mul
+        | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
+        | product "/" implicit                                      -> div
+        | implicit
 
-    ?implicit: implicit power        -> implicit_mul
-             | power
+?implicit: implicit power        -> implicit_mul
+         | power
 
-    ?power: "-" power                -> neg
-          | atom "^" power           -> power
-          | atom
+?power: "-" power                -> neg
+      | atom "^" power           -> power
+      | atom
 
-    ?atom: NUMBER                    -> number
-         | SYMBOL                    -> symbol
-         | derivative
-         | matrix
-         | matrix_env
-         | "(" expr ")"
-         | "\\left(" expr "\\right)"
-         | row_op
+?atom: NUMBER                    -> number
+     | trig_function
+     | log_function
+     | limit
+     | derivative
+     | fraction
+     | abs_function
+     | matrix
+     | matrix_env
+     | "(" expr ")"
+     | PI                        -> pi_symbol
+     | INFTY                     -> infty_symbol
+     | SYMBOL                    -> symbol
+     | row_op
 
-    scalar: NUMBER | SYMBOL
+scalar: NUMBER | SYMBOL
 
-    derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
-              | "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "\\left(" expr "\\right)" -> derivative_dx_left
+trig_function: TRIG_NAME "(" expr ")"    -> trig_func
 
-    matrix: "[" matrix_rows "]" -> matrix_rows
-    matrix_rows: row ("," row)* -> matrix_rows
-    row: "[" elements "]" -> row
-    elements: expr ("," expr)* -> elements
+log_function: LOG_NAME "(" expr ")"      -> log_func
 
-    matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
+limit: "\\lim" "_" "{" SYMBOL "\\to" expr "}" expr -> limit_expr
 
-    matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
-    matrix_env_row: expr ( "&" expr )*
+derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
 
-    matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
+fraction: "\\frac" "{" expr "}" "{" expr "}" -> frac
 
-    row_op: "R_" INT arrow row_expr                 -> row_replace
-          | "R_" INT swap_arrow "R_" INT            -> row_swap
+abs_function: "\\left" "|" expr "\\right" "|"     -> abs_func
+            | "|" expr "|"                          -> abs_func
 
-    arrow: "\\to" | "\\leftarrow"
-    swap_arrow: "\\leftrightarrow"
+matrix: "[" matrix_rows "]" -> matrix_rows
+matrix_rows: row ("," row)* -> matrix_rows
+row: "[" elements "]" -> row
+elements: expr ("," expr)* -> elements
 
-    row_expr: "R_" INT                     -> row_reference
-             | expr "R_" INT               -> row_scale
-             | "R_" INT op expr "R_" INT   -> row_combine
+matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
 
-    op: "+" | "-"
+matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
+matrix_env_row: expr ( "&" expr )*
 
-    NUMBER: /[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/
-    SYMBOL: /\\?[a-zA-Z][a-zA-Z0-9_]*/
-    INT: /[0-9]+/
+matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
 
-    %import common.WS_INLINE
-    %ignore WS_INLINE
-    """
+row_op: "R_" INT arrow row_expr                 -> row_replace
+      | "R_" INT swap_arrow "R_" INT            -> row_swap
+
+arrow: "\\to" | "\\leftarrow"
+swap_arrow: "\\leftrightarrow"
+
+row_expr: "R_" INT                     -> row_reference
+         | expr "R_" INT               -> row_scale
+         | "R_" INT op expr "R_" INT   -> row_combine
+
+op: "+" | "-"
+
+TRIG_NAME.2: "\\sin" | "\\cos" | "\\tan" | "\\cot" | "\\sec" | "\\csc" 
+           | "\\arcsin" | "\\arccos" | "\\arctan"
+LOG_NAME.2: "\\log" | "\\ln" | "\\exp"
+NUMBER: /[+-]?\d+(\.\d*)?|\.\d+/
+INT: /\d+/
+PI.2: "\\pi"
+INFTY.2: "\\infty"
+SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|lvert|rvert)(?![a-zA-Z0-9_]))[a-zA-Z][a-zA-Z0-9_]*/
+
+%import common.WS_INLINE
+%ignore WS_INLINE
+"""
 
     def __init__(self):
         from lark import Lark
@@ -392,15 +413,20 @@ class MathParser:
     # -----------------------------------------------------
     # ✅ Parse LaTeX to Sympy with popup error display
     # -----------------------------------------------------
-    def parse_latex(self, tex):
-        """Parse LaTeX string to SymPy expression with error popups"""
+    def parse_latex(self, latex):
+        """Parse LaTeX to SymPy expression with error popup display"""
         import re
         from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
-
-        t = self.clean_latex(tex)
+        
+        clean = self.clean_latex(latex)
+        window.console.log(f"🔍 Original LaTeX: {latex}")
+        window.console.log(f"🔍 Cleaned LaTeX: {clean}")
+        
         try:
-            tree = self.parser.parse(t)
+            tree = self.parser.parse(clean)
+            window.console.log(f"🔍 Parse tree: {tree.pretty()}")
             result = self.transformer.transform(tree)
+            window.console.log(f"🔍 Transformed result: {result}")
             return result
 
         except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
@@ -504,71 +530,266 @@ class MathParser:
     # ✅ Clean LaTeX
     # -----------------------------------------------------
     def clean_latex(self, tex):
-        """Normalize LaTeX string for parsing by removing spaces and macros"""
+        """Normalize LaTeX string for parsing"""
         import re
         if not tex:
             return ""
-        t = (
-            str(tex)
-            .replace("\\left", "")
-            .replace("\\right", "")
-            .replace("\\mathrm{d}", "d")
-        )
-        # Remove spacing macros and whitespace
-        t = re.sub(r"\\\\(?:,|;|:|!|quad|qquad| )", "", t)
+        t = str(tex)
+        
+        # Remove \left and \right but keep the parentheses
+        t = t.replace("\\left(", "(")
+        t = t.replace("\\right)", ")")
+        t = t.replace("\\left[", "[")
+        t = t.replace("\\right]", "]")
+        t = t.replace("\\left\\{", "{")
+        t = t.replace("\\right\\}", "}")
+        t = t.replace("\\left|", "|")
+        t = t.replace("\\right|", "|")
+        
+        # Replace mathrm{d} with d
+        t = t.replace("\\mathrm{d}", "d")
+        
+        # Remove spacing macros
+        t = re.sub(r"\\(?:,|;|:|!|quad|qquad| )", "", t)
+        
+        # Remove whitespace
         t = re.sub(r"\s+", "", t)
+        
         return t.strip()
 
     # -----------------------------------------------------
     # ✅ Transformer creation
     # -----------------------------------------------------
     def _create_transformer(self):
+        """Create the Lark transformer with improved rules"""
         from lark import Transformer, v_args
         import sympy as sp
-
+        
         @v_args(inline=True)
         class Latex2Sympy(Transformer):
             def number(self, tok):
                 s = str(tok)
                 return sp.Integer(s) if '.' not in s else sp.Float(s)
+            
             def symbol(self, tok):
                 s = str(tok).strip()
                 return sp.Symbol(s[1:] if s.startswith("\\") else s)
-            def neg(self, v): return sp.Mul(-1, v, evaluate=False)
-            def add(self, a, b): return sp.Add(a, b, evaluate=False)
-            def sub(self, a, b): return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
+            
+            def pi_symbol(self, _):
+                return sp.pi
+            
+            def infty_symbol(self, _):
+                return sp.oo
+            
+            def abs_func(self, expr):
+                return sp.Abs(expr)
+            
+            def neg(self, v): 
+                return sp.Mul(-1, v, evaluate=False)
+            
+            def add(self, a, b): 
+                return sp.Add(a, b, evaluate=False)
+            
+            def sub(self, a, b): 
+                return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
+            
             def mul(self, a, b):
                 if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) or isinstance(b, (sp.MatrixBase, sp.MatrixExpr)):
                     a_ = sp.UnevaluatedExpr(a) if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) else a
                     b_ = sp.UnevaluatedExpr(b) if isinstance(b, (sp.MatrixBase, sp.MatrixExpr)) else b
                     return sp.Mul(a_, b_, evaluate=False)
                 return sp.Mul(a, b, evaluate=True)
-            def div(self, a, b): return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
+            
+            def div(self, a, b): 
+                return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
+            
+            def frac(self, numerator, denominator):
+                return sp.Mul(numerator, sp.Pow(denominator, -1, evaluate=False), evaluate=False)
+            
+            def trig_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                func_map = {
+                    "sin": sp.sin,
+                    "cos": sp.cos,
+                    "tan": sp.tan,
+                    "cot": sp.cot,
+                    "sec": sp.sec,
+                    "csc": sp.csc,
+                    "arcsin": sp.asin,
+                    "arccos": sp.acos,
+                    "arctan": sp.atan,
+                }
+                func = func_map.get(func_str)
+                if func:
+                    return func(expr)
+                return sp.Function(func_str)(expr)
+            
+            def log_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                if func_str == "ln":
+                    return sp.ln(expr)
+                elif func_str == "log":
+                    return sp.log(expr, 10)
+                elif func_str == "exp":
+                    return sp.exp(expr)
+                return sp.Function(func_str)(expr)
+            
+            def limit_expr(self, var, value, expr):
+                return sp.Limit(expr, sp.Symbol(str(var)), value)
+            
             def implicit_mul(self, a, b):
                 if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
                     return sp.Mul(a, b, evaluate=False)
                 return sp.Mul(a, b, evaluate=False)
-            def power(self, a, b=None): return sp.Pow(a, b, evaluate=False) if b else a
-            def derivative_dx_paren(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
-            def derivative_dx_left(self, var, expr): return sp.Derivative(expr, sp.Symbol(str(var)))
-            def elements(self, *items): return list(items)
-            def row(self, elements): return list(elements) if isinstance(elements, (list, tuple)) else [elements]
+            
+            def power(self, a, b=None): 
+                return sp.Pow(a, b, evaluate=False) if b else a
+            
+            def derivative_dx_paren(self, var, expr): 
+                return sp.Derivative(expr, sp.Symbol(str(var)))
+            
+            def derivative_dx_left(self, var, expr): 
+                return sp.Derivative(expr, sp.Symbol(str(var)))
+            
+            def elements(self, *items): 
+                return list(items)
+            
+            def row(self, elements): 
+                return list(elements) if isinstance(elements, (list, tuple)) else [elements]
+            
             def matrix_rows(self, *rows):
                 row_list = [list(r) if isinstance(r, (list, tuple)) else [r] for r in rows]
                 return sp.Matrix(row_list)
+            
             def matrix_env(self, *args):
                 rows = []
                 for a in args:
-                    if a is None: continue
+                    if a is None: 
+                        continue
                     if isinstance(a, list) and a and all(isinstance(x, (list, tuple)) for x in a):
                         rows.extend([list(r) for r in a])
-                    elif isinstance(a, (list, tuple)): rows.append(list(a))
-                    else: rows.append([a])
+                    elif isinstance(a, (list, tuple)): 
+                        rows.append(list(a))
+                    else: 
+                        rows.append([a])
                 return sp.Matrix(rows)
-            def start(self, e): return e
-
+            
+            def scalar_matrix_mul(self, scalar, matrix):
+                return sp.Mul(scalar, matrix, evaluate=False)
+            
+            def row_reference(self, i):
+                return ("ref", int(i))
+            
+            def row_scale(self, factor, i):
+                return ("scale", int(i), factor)
+            
+            def row_replace(self, target, expr):
+                return ("replace", int(target), expr)
+            
+            def row_swap(self, i, j):
+                return ("swap", int(i), int(j))
+            
+            def row_combine(self, i, op, factor, j):
+                return ("combine", int(i), str(op), factor, int(j))
+            
+            def matrix_apply_ops(self, matrix, *ops):
+                import sympy as sp
+                m = sp.Matrix(matrix) if not isinstance(matrix, sp.Matrix) else matrix
+                for op in ops:
+                    if op[0] == "replace":
+                        _, target, expr = op
+                        if isinstance(expr, tuple):
+                            if expr[0] == "ref":
+                                m[target-1, :] = m[expr[1]-1, :]
+                            elif expr[0] == "scale":
+                                _, i, factor = expr
+                                m[target-1, :] = factor * m[i-1, :]
+                            elif expr[0] == "combine":
+                                _, i, op_str, factor, j = expr
+                                if op_str == "+":
+                                    m[target-1, :] = m[i-1, :] + factor * m[j-1, :]
+                                else:
+                                    m[target-1, :] = m[i-1, :] - factor * m[j-1, :]
+                    elif op[0] == "swap":
+                        _, i, j = op
+                        temp = m[i-1, :].copy()
+                        m[i-1, :] = m[j-1, :]
+                        m[j-1, :] = temp
+                return m
+            
+            def start(self, e): 
+                return e
+        
         return Latex2Sympy()
+    
+    def validate_limit(self, limit_expr):
+        """
+        Validate if a limit problem is suitable for students.
+        Returns (is_valid, error_message)
 
+        Invalid cases:
+        1. Different left and right limit values (discontinuity)
+        2. Oscillating limits (e.g., sin(1/x) as x->0)
+        3. Limits that evaluate to infinity
+        """
+        import sympy as sp
+
+        if not isinstance(limit_expr, sp.Limit):
+            return (True, None)  # Not a limit, skip validation
+
+        try:
+            # Get the limit components
+            expr = limit_expr.args[0]
+            var = limit_expr.args[1]
+            point = limit_expr.args[2]
+
+            # Evaluate the limit
+            limit_value = limit_expr.doit()
+
+            # Check 1: Limit evaluates to infinity
+            if limit_value.has(sp.oo) or limit_value == sp.oo or limit_value == -sp.oo:
+                return (False, f"Limit evaluates to infinity: {limit_value}")
+
+            # Check 2: Limit does not exist (returns unevaluated or NaN)
+            if isinstance(limit_value, sp.Limit) or limit_value is sp.nan:
+                return (False, "Limit does not exist or cannot be determined")
+
+            # Check 3: Different left and right limits (if approaching a finite point)
+            if point != sp.oo and point != -sp.oo:
+                try:
+                    left_limit = sp.limit(expr, var, point, '-')
+                    right_limit = sp.limit(expr, var, point, '+')
+
+                    # Simplify both limits
+                    left_simplified = sp.simplify(left_limit)
+                    right_simplified = sp.simplify(right_limit)
+
+                    # Check if they're different
+                    if not sp.simplify(left_simplified - right_simplified) == 0:
+                        return (False, f"Left and right limits differ: left={left_simplified}, right={right_simplified}")
+                except:
+                    pass
+
+            # Check 4: Oscillating behavior (limit doesn't exist due to oscillation)
+            # This is tricky - we check if the limit is AccumBounds or contains zoo
+            if hasattr(limit_value, 'is_finite') and not limit_value.is_finite:
+                if limit_value != sp.oo and limit_value != -sp.oo:
+                    return (False, "Limit oscillates or is undefined")
+
+            # Check for AccumBounds (accumulated bounds, indicates oscillation)
+            if 'AccumBounds' in str(type(limit_value)):
+                return (False, "Limit oscillates between multiple values")
+
+            # Check for zoo (complex infinity, often from oscillation)
+            if limit_value == sp.zoo:
+                return (False, "Limit is complex infinity (oscillation or undefined)")
+
+            return (True, None)
+
+        except Exception as e:
+            window.console.error(f"Error validating limit: {e}")
+            return (False, f"Error evaluating limit: {str(e)}")
+    
     # -----------------------------------------------------
     # ✅ Extract structure, normalize, and compare
     # -----------------------------------------------------
@@ -799,23 +1020,86 @@ class Step:
         try:
             parsed = self.math_parser.parse_latex(tex)
             if parsed:
+                # Validate limit problems before generating answer
+                is_valid, error_msg = self.math_parser.validate_limit(parsed)
+                
+                if not is_valid:
+                    self.parse_preview_el.innerText = (
+                        f"⚠️ Invalid Limit Problem\n\n"
+                        f"{error_msg}\n\n"
+                        f"Limit problems must have:\n"
+                        f"• Finite, well-defined values\n"
+                        f"• Equal left and right limits\n"
+                        f"• No oscillation\n\n"
+                        f"Please revise the expression."
+                    )
+                    self.parse_preview_el.style.whiteSpace = "pre-wrap"
+                    self.parse_preview_el.style.color = "#dc2626"
+                    self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+                    return
+                
+                # If valid or not a limit, proceed with normalization
                 result = self.math_parser.normalize_expr(parsed)
+                
                 if isinstance(result, sp.Matrix):
                     pretty = json.dumps(result.tolist(), indent=2)
                     self.expected_mf.latex(f"\\text{{{pretty}}}")
                     self.parse_preview_el.innerText = f"✅ Matrix Result:\n{pretty}"
+                    self.parse_preview_el.style.color = "#16a34a"
                 else:
                     latex_result = sp.latex(result)
                     self.expected_mf.latex(latex_result)
                     self.parse_preview_el.innerText = f"✅ Simplified Result:\n{result}"
+                    self.parse_preview_el.style.color = "#16a34a"
                     self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
         except Exception as ex:
             self.parse_preview_el.innerText = f"❌ Error generating: {ex}"
+            self.parse_preview_el.style.color = "#dc2626"
             self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
         
         if hasattr(window, 'problem_creator'):
             window.problem_creator.data_manager.save_to_storage()
     
+    #def _check_expected(self, e):
+    #    """Compare Expression vs Expected Answer, including structure"""
+    #    self.parse_preview_el.innerText = ""
+    #    try:
+    #        expr_tex = self.expr_mf.latex().strip() if self.expr_mf else ""
+    #        exp_tex  = self.expected_mf.latex().strip() if self.expected_mf else ""
+    #        if not expr_tex:
+    #            self.parse_preview_el.innerText = "⚠️ Enter expression first."
+    #            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#ca8a04")
+    #            return
+#
+    #        expr_val = self.math_parser.parse_latex(expr_tex)
+    #        exp_val  = self.math_parser.parse_latex(exp_tex)
+    #        if expr_val is None or exp_val is None:
+    #            self.parse_preview_el.innerText = "❌ Could not parse one or both sides."
+    #            return
+#
+    #        expr_struct = self.math_parser.extract_structure(expr_val)
+    #        exp_struct  = self.math_parser.extract_structure(exp_val)
+    #        expr_norm = self.math_parser.normalize_expr(expr_val)
+    #        exp_norm  = self.math_parser.normalize_expr(exp_val)
+#
+    #        if self.math_parser.final_eq(expr_norm, exp_norm):
+    #            msg = "✅ Expressions match!"
+    #            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#16a34a")
+    #            self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
+    #            if expr_struct == exp_struct:
+    #                msg += "\n✅ Structures also match!"
+    #            else:
+    #                msg += f"\n⚠️ Structure differs:\nExpression: {expr_struct}\nExpected: {exp_struct}"
+    #                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#ca8a04")
+    #        else:
+    #            msg = f"❌ Not equal.\nLeft: {expr_norm}\nRight: {exp_norm}"
+    #            self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+    #            self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+    #        self.parse_preview_el.innerText = msg
+    #    except Exception as ex:
+    #        self.parse_preview_el.innerText = f"❌ Error checking: {ex}"
+    #        self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+
     def _check_expected(self, e):
         """Compare Expression vs Expected Answer, including structure"""
         self.parse_preview_el.innerText = ""
@@ -826,18 +1110,52 @@ class Step:
                 self.parse_preview_el.innerText = "⚠️ Enter expression first."
                 self._animate_glow(self.dom_element.querySelector(".step-expr"), "#ca8a04")
                 return
-
+            
             expr_val = self.math_parser.parse_latex(expr_tex)
             exp_val  = self.math_parser.parse_latex(exp_tex)
+            
             if expr_val is None or exp_val is None:
                 self.parse_preview_el.innerText = "❌ Could not parse one or both sides."
                 return
-
+            
+            # Validate limit for expression
+            is_expr_valid, expr_error_msg = self.math_parser.validate_limit(expr_val)
+            if not is_expr_valid:
+                self.parse_preview_el.innerText = (
+                    f"⚠️ Invalid Limit in Expression\n\n"
+                    f"{expr_error_msg}\n\n"
+                    f"Limit problems must have:\n"
+                    f"• Finite, well-defined values\n"
+                    f"• Equal left and right limits\n"
+                    f"• No oscillation"
+                )
+                self.parse_preview_el.style.whiteSpace = "pre-wrap"
+                self.parse_preview_el.style.color = "#dc2626"
+                self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
+                return
+            
+            # Validate limit for expected answer
+            is_exp_valid, exp_error_msg = self.math_parser.validate_limit(exp_val)
+            if not is_exp_valid:
+                self.parse_preview_el.innerText = (
+                    f"⚠️ Invalid Limit in Expected Answer\n\n"
+                    f"{exp_error_msg}\n\n"
+                    f"Limit problems must have:\n"
+                    f"• Finite, well-defined values\n"
+                    f"• Equal left and right limits\n"
+                    f"• No oscillation"
+                )
+                self.parse_preview_el.style.whiteSpace = "pre-wrap"
+                self.parse_preview_el.style.color = "#dc2626"
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+                return
+            
+            # If both are valid, proceed with comparison
             expr_struct = self.math_parser.extract_structure(expr_val)
             exp_struct  = self.math_parser.extract_structure(exp_val)
             expr_norm = self.math_parser.normalize_expr(expr_val)
             exp_norm  = self.math_parser.normalize_expr(exp_val)
-
+            
             if self.math_parser.final_eq(expr_norm, exp_norm):
                 msg = "✅ Expressions match!"
                 self._animate_glow(self.dom_element.querySelector(".step-expr"), "#16a34a")
@@ -847,13 +1165,19 @@ class Step:
                 else:
                     msg += f"\n⚠️ Structure differs:\nExpression: {expr_struct}\nExpected: {exp_struct}"
                     self._animate_glow(self.dom_element.querySelector(".step-expected"), "#ca8a04")
+                self.parse_preview_el.style.color = "#16a34a"
             else:
                 msg = f"❌ Not equal.\nLeft: {expr_norm}\nRight: {exp_norm}"
                 self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
                 self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+                self.parse_preview_el.style.color = "#dc2626"
+            
             self.parse_preview_el.innerText = msg
+            self.parse_preview_el.style.whiteSpace = "pre-wrap"
+            
         except Exception as ex:
             self.parse_preview_el.innerText = f"❌ Error checking: {ex}"
+            self.parse_preview_el.style.color = "#dc2626"
             self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
 
     def _check_user_answer(self, e):
@@ -865,18 +1189,46 @@ class Step:
             if not user_tex:
                 self._show_feedback("warn", "⚠️ Empty")
                 return
-
+            
             user_val = self.math_parser.parse_latex(user_tex)
             exp_val  = self.math_parser.parse_latex(exp_tex)
+            
             if user_val is None or exp_val is None:
                 self._show_feedback("warn", "⚠️ Parse Error")
                 return
-
+            
+            # ⭐ NEW: Validate limit for user answer
+            is_user_valid, user_error_msg = self.math_parser.validate_limit(user_val)
+            if not is_user_valid:
+                self._show_feedback("warn", "⚠️ Invalid Limit")
+                self._animate_glow(self.dom_element.querySelector(".step-user"), "#dc2626")
+                self.parse_preview_el.innerText = (
+                    f"⚠️ Invalid limit in user answer:\n{user_error_msg}\n\n"
+                    f"Limits must have:\n"
+                    f"• Finite values\n"
+                    f"• Equal left/right limits\n"
+                    f"• No oscillation"
+                )
+                return
+            
+            # ⭐ NEW: Validate limit for expected answer
+            is_exp_valid, exp_error_msg = self.math_parser.validate_limit(exp_val)
+            if not is_exp_valid:
+                self._show_feedback("warn", "⚠️ Invalid Limit")
+                self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
+                self.parse_preview_el.innerText = (
+                    f"⚠️ Invalid limit in expected answer:\n{exp_error_msg}\n\n"
+                    f"This step has an invalid limit.\n"
+                    f"Please fix the expected answer."
+                )
+                return
+            
+            # If both valid, proceed with comparison
             user_struct = self.math_parser.extract_structure(user_val)
             exp_struct  = self.math_parser.extract_structure(exp_val)
             user_norm = self.math_parser.normalize_expr(user_val)
             exp_norm  = self.math_parser.normalize_expr(exp_val)
-
+            
             if self.math_parser.final_eq(user_norm, exp_norm):
                 self._show_feedback("correct")
                 self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
@@ -892,10 +1244,11 @@ class Step:
                 self._animate_glow(self.dom_element.querySelector(".step-expected"), "#dc2626")
                 msg = f"❌ User answer not correct.\nUser: {user_norm}\nExpected: {exp_norm}"
                 self.parse_preview_el.innerText = msg
+                
         except Exception as ex:
             self._show_feedback("warn", "⚠️ Error")
             self.parse_preview_el.innerText = f"❌ Error comparing: {ex}"
-    
+            
     def _preview_parse(self, e):
         self.parse_preview_el.innerText = ""
         try:
@@ -903,11 +1256,26 @@ class Step:
             if not tex:
                 self.parse_preview_el.innerText = "⚠️ Enter expression to preview."
                 return
+            
             parsed = self.math_parser.parse_latex(tex)
+            
             if parsed:
-                self.parse_preview_el.innerText = f"Parsed expression:\n{parsed}\n\nSymPy repr:\n{sp.srepr(parsed)}"
+                # Validate limit before showing preview
+                is_valid, error_msg = self.math_parser.validate_limit(parsed)
+                
+                if not is_valid:
+                    # Show warning for invalid limit but still display parsed info
+                    self.parse_preview_el.innerText = (
+                        f"⚠️ INVALID LIMIT:\n{error_msg}\n\n"
+                        f"Parsed expression:\n{parsed}\n\n"
+                        f"SymPy repr:\n{sp.srepr(parsed)}"
+                    )
+                else:
+                    # Valid expression - show normal preview
+                    self.parse_preview_el.innerText = f"Parsed expression:\n{parsed}\n\nSymPy repr:\n{sp.srepr(parsed)}"
             else:
                 self.parse_preview_el.innerText = "❌ Could not parse expression"
+                
         except Exception as ex:
             self.parse_preview_el.innerText = f"❌ Parse error: {ex}"
 
@@ -1235,7 +1603,6 @@ class DataManager:
                         el.classList.remove("input-empty", "input-invalid", "input-valid")
 
         # Validation loop
-        # Validation loop
         for p_index, problem in enumerate(problems, start=1):
             prob_desc_el = problem.dom_element.querySelector(".prob-desc")
             desc_text = prob_desc_el.textContent.strip() if prob_desc_el else ""
@@ -1275,37 +1642,66 @@ class DataManager:
                 try:
                     expr_val = math_parser.parse_latex(expr_tex)
                     exp_val = math_parser.parse_latex(exp_tex)
+                    
                     if expr_val is None or exp_val is None:
                         invalid_entries.append(f"Problem {p_index}, Step {s_index}: could not parse expression or answer")
-                        expr_el.classList.add("input-invalid")
-                        exp_el.classList.add("input-invalid")
+                        if expr_el:
+                            expr_el.classList.add("input-invalid")
+                        if exp_el:
+                            exp_el.classList.add("input-invalid")
                         continue
 
+                    # ⭐ NEW: Validate limit for expression
+                    is_expr_valid, expr_error_msg = math_parser.validate_limit(expr_val)
+                    if not is_expr_valid:
+                        invalid_entries.append(f"Problem {p_index}, Step {s_index}: invalid limit in expression - {expr_error_msg}")
+                        if expr_el:
+                            expr_el.classList.add("input-invalid")
+                        continue
+
+                    # ⭐ NEW: Validate limit for expected answer
+                    is_exp_valid, exp_error_msg = math_parser.validate_limit(exp_val)
+                    if not is_exp_valid:
+                        invalid_entries.append(f"Problem {p_index}, Step {s_index}: invalid limit in expected answer - {exp_error_msg}")
+                        if exp_el:
+                            exp_el.classList.add("input-invalid")
+                        continue
+
+                    # Normalize and compare
                     expr_norm = math_parser.normalize_expr(expr_val)
                     exp_norm = math_parser.normalize_expr(exp_val)
 
                     if math_parser.final_eq(expr_norm, exp_norm):
-                        expr_el.classList.add("input-valid")
-                        exp_el.classList.add("input-valid")
+                        if expr_el:
+                            expr_el.classList.add("input-valid")
+                        if exp_el:
+                            exp_el.classList.add("input-valid")
 
-                        # ⭐ NEW: Verify expected_structure can be computed
+                        # Verify expected_structure can be computed
                         try:
                             test_structure = math_parser.extract_structure(exp_val)
                             if not test_structure or (not test_structure.get("operators") and not test_structure.get("operands")):
                                 invalid_entries.append(f"Problem {p_index}, Step {s_index}: could not extract structure")
-                                exp_el.classList.add("input-invalid")
+                                if exp_el:
+                                    exp_el.classList.add("input-invalid")
                         except Exception as struct_err:
                             invalid_entries.append(f"Problem {p_index}, Step {s_index}: structure extraction failed - {struct_err}")
-                            exp_el.classList.add("input-invalid")
+                            if exp_el:
+                                exp_el.classList.add("input-invalid")
                     else:
                         invalid_entries.append(f"Problem {p_index}, Step {s_index}: expression ≠ expected")
-                        expr_el.classList.add("input-invalid")
-                        exp_el.classList.add("input-invalid")
+                        if expr_el:
+                            expr_el.classList.add("input-invalid")
+                        if exp_el:
+                            exp_el.classList.add("input-invalid")
 
                 except Exception as e:
                     invalid_entries.append(f"Problem {p_index}, Step {s_index}: {e}")
-                    expr_el.classList.add("input-invalid")
-                    exp_el.classList.add("input-invalid")
+                    if expr_el:
+                        expr_el.classList.add("input-invalid")
+                    if exp_el:
+                        exp_el.classList.add("input-invalid")
+        
         # If invalid entries found
         if invalid_entries:
             self._show_popup(

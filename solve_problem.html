@@ -1098,6 +1098,9 @@ input[type="file"]:hover {
         <button class="input-btn operator" data-action="\\int">∫</button>
         <button class="input-btn operator" data-action="\\sum">Σ</button>
         <button class="input-btn operator" data-action="\\lim">lim</button>
+        <button class="input-btn operator" data-action="SEQ:\\lim,_,x,\\to,0,{Right},{Right}">lim→0</button>
+        <button class="input-btn operator" data-action="SEQ:\\lim,_,x,\\to,\\infty,{Right},{Right}">lim→∞</button>
+        <button class="input-btn operator" data-action="\\to">→</button>
         <button class="input-btn operator" data-action="\\infty">∞</button>
         <button class="input-btn operator" data-action="\\partial">∂</button>
         <button class="input-btn operator" data-action="e">e</button>
@@ -1252,73 +1255,94 @@ class MathParser:
     """Handles LaTeX parsing with improved grammar and structure extraction"""
     
     GRAMMAR = r"""
-    start: matrix_ops
-         | expr
+start: matrix_ops
+     | expr
 
-    ?expr: sum
+?expr: sum
 
-    ?sum: sum "+" product   -> add
-        | sum "-" product   -> sub
-        | product
+?sum: sum "+" product   -> add
+    | sum "-" product   -> sub
+    | product
 
-    ?product: scalar matrix                 -> scalar_matrix_mul
-            | scalar matrix_env             -> scalar_matrix_mul
-            | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
-            | product "/" implicit                                      -> div
-            | implicit
+?product: scalar matrix                 -> scalar_matrix_mul
+        | scalar matrix_env             -> scalar_matrix_mul
+        | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
+        | product "/" implicit                                      -> div
+        | implicit
 
-    ?implicit: implicit power        -> implicit_mul
-             | power
+?implicit: implicit power        -> implicit_mul
+         | power
 
-    ?power: "-" power                -> neg
-          | atom "^" power           -> power
-          | atom
+?power: "-" power                -> neg
+      | atom "^" power           -> power
+      | atom
 
-    ?atom: NUMBER                    -> number
-         | SYMBOL                    -> symbol
-         | derivative
-         | matrix
-         | matrix_env
-         | "(" expr ")"
-         | "\\left(" expr "\\right)"
-         | row_op
+?atom: NUMBER                    -> number
+     | trig_function
+     | log_function
+     | limit
+     | derivative
+     | fraction
+     | abs_function
+     | matrix
+     | matrix_env
+     | "(" expr ")"
+     | PI                        -> pi_symbol
+     | INFTY                     -> infty_symbol
+     | SYMBOL                    -> symbol
+     | row_op
 
-    scalar: NUMBER | SYMBOL
+scalar: NUMBER | SYMBOL
 
-    derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
-              | "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "\\left(" expr "\\right)" -> derivative_dx_left
+trig_function: TRIG_NAME "(" expr ")"    -> trig_func
 
-    matrix: "[" matrix_rows "]" -> matrix_rows
-    matrix_rows: row ("," row)* -> matrix_rows
-    row: "[" elements "]" -> row
-    elements: expr ("," expr)* -> elements
+log_function: LOG_NAME "(" expr ")"      -> log_func
 
-    matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
+limit: "\\lim" "_" "{" SYMBOL "\\to" expr "}" expr -> limit_expr
 
-    matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
-    matrix_env_row: expr ( "&" expr )*
+derivative: "\\frac" "{" "d" "}" "{" "d" SYMBOL "}" "(" expr ")"  -> derivative_dx_paren
 
-    matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
+fraction: "\\frac" "{" expr "}" "{" expr "}" -> frac
 
-    row_op: "R_" INT arrow row_expr                 -> row_replace
-          | "R_" INT swap_arrow "R_" INT            -> row_swap
+abs_function: "\\left" "|" expr "\\right" "|"     -> abs_func
+            | "|" expr "|"                          -> abs_func
 
-    arrow: "\\to" | "\\leftarrow"
-    swap_arrow: "\\leftrightarrow"
+matrix: "[" matrix_rows "]" -> matrix_rows
+matrix_rows: row ("," row)* -> matrix_rows
+row: "[" elements "]" -> row
+elements: expr ("," expr)* -> elements
 
-    row_expr: "R_" INT                     -> row_reference
-             | expr "R_" INT               -> row_scale
-             | "R_" INT op expr "R_" INT   -> row_combine
+matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
 
-    op: "+" | "-"
+matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
+matrix_env_row: expr ( "&" expr )*
 
-    NUMBER: /[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/
-    SYMBOL: /\\?[a-zA-Z][a-zA-Z0-9_]*/
-    INT: /[0-9]+/
+matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
 
-    %import common.WS_INLINE
-    %ignore WS_INLINE
-    """
+row_op: "R_" INT arrow row_expr                 -> row_replace
+      | "R_" INT swap_arrow "R_" INT            -> row_swap
+
+arrow: "\\to" | "\\leftarrow"
+swap_arrow: "\\leftrightarrow"
+
+row_expr: "R_" INT                     -> row_reference
+         | expr "R_" INT               -> row_scale
+         | "R_" INT op expr "R_" INT   -> row_combine
+
+op: "+" | "-"
+
+TRIG_NAME.2: "\\sin" | "\\cos" | "\\tan" | "\\cot" | "\\sec" | "\\csc" 
+           | "\\arcsin" | "\\arccos" | "\\arctan"
+LOG_NAME.2: "\\log" | "\\ln" | "\\exp"
+NUMBER: /[+-]?\d+(\.\d*)?|\.\d+/
+INT: /\d+/
+PI.2: "\\pi"
+INFTY.2: "\\infty"
+SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|lvert|rvert)(?![a-zA-Z0-9_]))[a-zA-Z][a-zA-Z0-9_]*/
+
+%import common.WS_INLINE
+%ignore WS_INLINE
+"""
     
     def __init__(self):
         from lark import Lark
@@ -1340,6 +1364,19 @@ class MathParser:
                 s = str(tok).strip()
                 return sp.Symbol(s[1:] if s.startswith("\\") else s)
             
+            def pi_symbol(self, _):
+                return sp.pi
+            
+            def infty_symbol(self, _):
+                return sp.oo
+            
+            def infinity(self, tok):
+                s = str(tok)
+                return -sp.oo if s.startswith('-') else sp.oo
+            
+            def abs_func(self, expr):
+                return sp.Abs(expr)
+            
             def neg(self, v): 
                 return sp.Mul(-1, v, evaluate=False)
             
@@ -1358,6 +1395,40 @@ class MathParser:
             
             def div(self, a, b): 
                 return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
+            
+            def frac(self, numerator, denominator):
+                return sp.Mul(numerator, sp.Pow(denominator, -1, evaluate=False), evaluate=False)
+            
+            def trig_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                func_map = {
+                    "sin": sp.sin,
+                    "cos": sp.cos,
+                    "tan": sp.tan,
+                    "cot": sp.cot,
+                    "sec": sp.sec,
+                    "csc": sp.csc,
+                    "arcsin": sp.asin,
+                    "arccos": sp.acos,
+                    "arctan": sp.atan,
+                }
+                func = func_map.get(func_str)
+                if func:
+                    return func(expr)
+                return sp.Function(func_str)(expr)
+            
+            def log_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                if func_str == "ln":
+                    return sp.ln(expr)
+                elif func_str == "log":
+                    return sp.log(expr, 10)
+                elif func_str == "exp":
+                    return sp.exp(expr)
+                return sp.Function(func_str)(expr)
+            
+            def limit_expr(self, var, value, expr):
+                return sp.Limit(expr, sp.Symbol(str(var)), value)
             
             def implicit_mul(self, a, b):
                 if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
@@ -1444,21 +1515,103 @@ class MathParser:
         
         return Latex2Sympy()
     
+    def validate_limit(self, limit_expr):
+        """
+        Validate if a limit problem is suitable for students.
+        Returns (is_valid, error_message)
+        
+        Invalid cases:
+        1. Different left and right limit values (discontinuity)
+        2. Oscillating limits (e.g., sin(1/x) as x->0)
+        3. Limits that evaluate to infinity
+        """
+        import sympy as sp
+        
+        if not isinstance(limit_expr, sp.Limit):
+            return (True, None)  # Not a limit, skip validation
+        
+        try:
+            # Get the limit components
+            expr = limit_expr.args[0]
+            var = limit_expr.args[1]
+            point = limit_expr.args[2]
+            
+            # Evaluate the limit
+            limit_value = limit_expr.doit()
+            
+            # Check 1: Limit evaluates to infinity
+            if limit_value.has(sp.oo) or limit_value == sp.oo or limit_value == -sp.oo:
+                return (False, f"Limit evaluates to infinity: {limit_value}")
+            
+            # Check 2: Limit does not exist (returns unevaluated or NaN)
+            if isinstance(limit_value, sp.Limit) or limit_value is sp.nan:
+                return (False, "Limit does not exist or cannot be determined")
+            
+            # Check 3: Different left and right limits (if approaching a finite point)
+            if point != sp.oo and point != -sp.oo:
+                try:
+                    left_limit = sp.limit(expr, var, point, '-')
+                    right_limit = sp.limit(expr, var, point, '+')
+                    
+                    # Simplify both limits
+                    left_simplified = sp.simplify(left_limit)
+                    right_simplified = sp.simplify(right_limit)
+                    
+                    # Check if they're different
+                    if not sp.simplify(left_simplified - right_simplified) == 0:
+                        return (False, f"Left and right limits differ: left={left_simplified}, right={right_simplified}")
+                except:
+                    pass
+            
+            # Check 4: Oscillating behavior (limit doesn't exist due to oscillation)
+            # This is tricky - we check if the limit is AccumBounds or contains zoo
+            if hasattr(limit_value, 'is_finite') and not limit_value.is_finite:
+                if limit_value != sp.oo and limit_value != -sp.oo:
+                    return (False, "Limit oscillates or is undefined")
+            
+            # Check for AccumBounds (accumulated bounds, indicates oscillation)
+            if 'AccumBounds' in str(type(limit_value)):
+                return (False, "Limit oscillates between multiple values")
+            
+            # Check for zoo (complex infinity, often from oscillation)
+            if limit_value == sp.zoo:
+                return (False, "Limit is complex infinity (oscillation or undefined)")
+            
+            return (True, None)
+            
+        except Exception as e:
+            window.console.error(f"Error validating limit: {e}")
+            return (False, f"Error evaluating limit: {str(e)}")
+            
+    
     def clean_latex(self, tex):
         """Normalize LaTeX string for parsing"""
         import re
         if not tex:
             return ""
-        t = (
-            str(tex)
-            .replace("\\left", "")
-            .replace("\\right", "")
-            .replace("\\mathrm{d}", "d")
-        )
-        # Remove spacing macros and whitespace
-        t = re.sub(r"\\\\(?:,|;|:|!|quad|qquad| )", "", t)
+        t = str(tex)
+        
+        # Remove \left and \right but keep the parentheses
+        t = t.replace("\\left(", "(")
+        t = t.replace("\\right)", ")")
+        t = t.replace("\\left[", "[")
+        t = t.replace("\\right]", "]")
+        t = t.replace("\\left\\{", "{")
+        t = t.replace("\\right\\}", "}")
+        t = t.replace("\\left|", "|")
+        t = t.replace("\\right|", "|")
+        
+        # Replace mathrm{d} with d
+        t = t.replace("\\mathrm{d}", "d")
+        
+        # Remove spacing macros
+        t = re.sub(r"\\(?:,|;|:|!|quad|qquad| )", "", t)
+        
+        # Remove whitespace
         t = re.sub(r"\s+", "", t)
+        
         return t.strip()
+
     
     def _show_error_popup(self, message):
         """Display error popup with close button - optimized for mobile"""
@@ -1606,9 +1759,14 @@ class MathParser:
         from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
         
         clean = self.clean_latex(latex)
+        window.console.log(f"🔍 Original LaTeX: {latex}")
+        window.console.log(f"🔍 Cleaned LaTeX: {clean}")
+        
         try:
             tree = self.parser.parse(clean)
+            window.console.log(f"🔍 Parse tree: {tree.pretty()}")
             result = self.transformer.transform(tree)
+            window.console.log(f"🔍 Transformed result: {result}")
             return result
         
         except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
@@ -1740,8 +1898,502 @@ class MathParser:
                 return a.equals(b)
             except:
                 return False
+
+class KeyboardInputHandler:
+    """Common handler for keyboard input to MathQuill fields"""
+    
+    @staticmethod
+    def handle_action(mathquill_field, action):
+        """
+        Handle keyboard action for a MathQuill field
+        
+        Args:
+            mathquill_field: MathQuill field instance
+            action: String action from button data-action attribute
+        """
+        if not mathquill_field:
+            window.console.error("No MathQuill field provided")
+            return
+        
+        window.console.log(f"KeyboardInputHandler: Action = {action}")
+        
+        # ==================== NAVIGATION & CONTROL ====================
+        if action == "BACKSPACE":
+            mathquill_field.keystroke("Backspace")
+        elif action == "CLEAR":
+            mathquill_field.latex("")
+        elif action == "MOVE_LEFT":
+            mathquill_field.keystroke("Left")
+        elif action == "MOVE_RIGHT":
+            mathquill_field.keystroke("Right")
+        elif action == "SELECT_LEFT":
+            mathquill_field.keystroke("Shift-Left")
+        elif action == "SELECT_RIGHT":
+            mathquill_field.keystroke("Shift-Right")
+        elif action == "MOVE_UP":
+            mathquill_field.keystroke("Up")
+        elif action == "MOVE_DOWN":
+            mathquill_field.keystroke("Down")
+        elif action == "HOME":
+            mathquill_field.keystroke("Home")
+        elif action == "END":
+            mathquill_field.keystroke("End")
+        
+        # ==================== KEYBOARD ACTIVATION ====================
+        elif action == "ACTIVATE_KEYBOARD":
+            try:
+                el = mathquill_field.el()
+                textarea = el.querySelector('textarea')
+                if textarea:
+                    textarea.style.width = f"{el.offsetWidth}px"
+                    textarea.style.height = f"{el.offsetHeight}px"
+                    textarea.style.overflow = "hidden"
+                    textarea.style.resize = "none"
+                    textarea.style.boxSizing = "border-box"
+                    textarea.removeAttribute('readonly')
+                    textarea.removeAttribute('disabled')
+                    textarea.style.pointerEvents = 'auto'
+                    textarea.style.opacity = '1'
+                    textarea.style.position = 'absolute'
+                    textarea.style.left = '0'
+                    textarea.focus()
+                    window.console.log("✅ Keyboard activated")
+            except Exception as e:
+                window.console.error(f"Failed to activate keyboard: {e}")
+        
+        elif action == "DEACTIVATE_KEYBOARD":
+            try:
+                el = mathquill_field.el()
+                textarea = el.querySelector('textarea')
+                if textarea:
+                    textarea.blur()
+                    textarea.setAttribute('readonly', 'readonly')
+                    textarea.setAttribute('disabled', 'disabled')
+                    textarea.style.pointerEvents = 'none'
+                    textarea.style.opacity = '0'
+                    textarea.style.position = 'absolute'
+                    textarea.style.left = '-9999px'
+                    window.console.log("✅ Keyboard deactivated")
+            except Exception as e:
+                window.console.error(f"Failed to deactivate keyboard: {e}")
+        
+        # ==================== SPECIAL OPERATORS ====================
+        elif action == "^":
+            mathquill_field.cmd("^")
+        elif action == "_":
+            mathquill_field.cmd("_")
+        elif action == "/":
+            mathquill_field.cmd("/")
+        
+        # ==================== ARITHMETIC OPERATORS ====================
+        elif action == "+":
+            mathquill_field.write("+")
+        elif action == "-":
+            mathquill_field.write("-")
+        elif action == "*":
+            mathquill_field.cmd("times")
+        elif action == "\\times":
+            mathquill_field.cmd("times")
+        elif action == "\\cdot":
+            mathquill_field.cmd("cdot")
+        elif action == "\\div":
+            mathquill_field.cmd("div")
+        elif action == "=":
+            mathquill_field.write("=")
+        
+        # ==================== BRACKETS & DELIMITERS ====================
+        elif action == "(":
+            mathquill_field.write("(")
+        elif action == ")":
+            mathquill_field.write(")")
+        elif action == "[":
+            mathquill_field.write("[")
+        elif action == "]":
+            mathquill_field.write("]")
+        elif action == "{":
+            mathquill_field.write("{")
+        elif action == "}":
+            mathquill_field.write("}")
+        elif action == "|":
+            mathquill_field.cmd("|")
+        elif action == ",":
+            mathquill_field.write(",")
+        elif action == ".":
+            mathquill_field.write(".")
+        elif action == "&":
+            mathquill_field.write("&")
+        elif action == "\\\\":
+            mathquill_field.write("\\\\")
+        
+        # ==================== ALGEBRA & CALCULUS ====================
+        elif action == "\\sqrt":
+            mathquill_field.cmd("sqrt")
+        elif action == "\\frac":
+            mathquill_field.cmd("frac")
+        elif action == "\\int":
+            mathquill_field.cmd("int")
+        elif action == "\\sum":
+            mathquill_field.cmd("sum")
+        elif action == "\\prod":
+            mathquill_field.cmd("prod")
+        elif action == "\\infty":
+            mathquill_field.cmd("infty")
+        elif action == "\\partial":
+            mathquill_field.cmd("partial")
+        elif action == "\\to":
+            mathquill_field.cmd("to")
+        
+# ==================== LIMIT VARIATIONS ====================
+        elif action == "\\lim":
+            # Simple lim symbol only
+            mathquill_field.cmd("lim")
+        
+        elif action == "\\lim_sequence":
+            # Full limit notation: lim_{x\to 0}
+            mathquill_field.cmd("lim")
+            mathquill_field.cmd("_")
+            mathquill_field.write("x")
+            mathquill_field.cmd("to")
+            mathquill_field.keystroke("Spacebar")
+            mathquill_field.write("0")
+            mathquill_field.keystroke("Right")
+        
+        elif action == "\\lim_to_zero":
+            # lim_{x\to 0}
+            mathquill_field.cmd("lim")
+            mathquill_field.cmd("_")
+            mathquill_field.write("x")
+            mathquill_field.cmd("to")
+            mathquill_field.write("0")
+            mathquill_field.keystroke("Right")
+        
+        elif action == "\\lim_to_infty":
+            # lim_{x\to \infty}
+            mathquill_field.cmd("lim")
+            mathquill_field.cmd("_")
+            mathquill_field.write("x")
+            mathquill_field.cmd("to")
+            mathquill_field.cmd("infty")
+            mathquill_field.keystroke("Right")
+            mathquill_field.keystroke("Right")
+        
+        elif action == "\\lim_n_to_infty":
+            # lim_{n\to \infty}
+            mathquill_field.cmd("lim")
+            mathquill_field.cmd("_")
+            mathquill_field.write("n")
+            mathquill_field.cmd("to")
+            mathquill_field.cmd("infty")
+            mathquill_field.keystroke("Right")
+            mathquill_field.keystroke("Right")
+            
+        # ==================== TRIGONOMETRY ====================
+        elif action == "\\sin":
+            mathquill_field.cmd("sin")
+        elif action == "\\cos":
+            mathquill_field.cmd("cos")
+        elif action == "\\tan":
+            mathquill_field.cmd("tan")
+        elif action == "\\cot":
+            mathquill_field.cmd("cot")
+        elif action == "\\sec":
+            mathquill_field.cmd("sec")
+        elif action == "\\csc":
+            mathquill_field.cmd("csc")
+        elif action == "\\arcsin":
+            mathquill_field.cmd("arcsin")
+        elif action == "\\arccos":
+            mathquill_field.cmd("arccos")
+        elif action == "\\arctan":
+            mathquill_field.cmd("arctan")
+        
+        # ==================== LOGARITHMS ====================
+        elif action == "\\log":
+            mathquill_field.cmd("log")
+        elif action == "\\ln":
+            mathquill_field.cmd("ln")
+        elif action == "\\exp":
+            mathquill_field.cmd("exp")
+        elif action == "e":
+            mathquill_field.write("e")
+        
+        # ==================== GREEK LETTERS ====================
+        elif action == "\\alpha":
+            mathquill_field.cmd("alpha")
+        elif action == "\\beta":
+            mathquill_field.cmd("beta")
+        elif action == "\\gamma":
+            mathquill_field.cmd("gamma")
+        elif action == "\\delta":
+            mathquill_field.cmd("delta")
+        elif action == "\\theta":
+            mathquill_field.cmd("theta")
+        elif action == "\\lambda":
+            mathquill_field.cmd("lambda")
+        elif action == "\\pi":
+            mathquill_field.cmd("pi")
+        elif action == "\\sigma":
+            mathquill_field.cmd("sigma")
+        elif action == "\\phi":
+            mathquill_field.cmd("phi")
+        elif action == "\\omega":
+            mathquill_field.cmd("omega")
+        elif action == "\\mu":
+            mathquill_field.cmd("mu")
+        elif action == "\\rho":
+            mathquill_field.cmd("rho")
+        elif action == "\\tau":
+            mathquill_field.cmd("tau")
+        elif action == "\\epsilon":
+            mathquill_field.cmd("epsilon")
+        elif action == "\\xi":
+            mathquill_field.cmd("xi")
+        elif action == "\\zeta":
+            mathquill_field.cmd("zeta")
+        elif action == "\\eta":
+            mathquill_field.cmd("eta")
+        elif action == "\\iota":
+            mathquill_field.cmd("iota")
+        elif action == "\\kappa":
+            mathquill_field.cmd("kappa")
+        elif action == "\\nu":
+            mathquill_field.cmd("nu")
+        elif action == "\\omicron":
+            mathquill_field.cmd("omicron")
+        elif action == "\\upsilon":
+            mathquill_field.cmd("upsilon")
+        elif action == "\\chi":
+            mathquill_field.cmd("chi")
+        elif action == "\\psi":
+            mathquill_field.cmd("psi")
+        
+        # ==================== MATRIX OPERATIONS ====================
+        elif action == "\\det":
+            mathquill_field.cmd("det")
+        elif action == "^T":
+            mathquill_field.write("^T")
+        elif action == "^{-1}":
+            mathquill_field.write("^{-1}")
+        
+        # ==================== SEQUENCES ====================
+        elif action.startswith("SEQ:"):
+            # Handle sequences like d/dx, SEQ:d,/,d,x
+            # Now supports keystrokes in curly braces like {Space}, {Right}
+            sequence = action[4:]
+            keys = sequence.split(",")
+            for key in keys:
+                key = key.strip()
+                
+                # Check if it's a keystroke command in curly braces
+                if key.startswith("{") and key.endswith("}"):
+                    # Extract keystroke name (e.g., {Space} -> Space, {Right} -> Right)
+                    keystroke_name = key[1:-1]
+                    mathquill_field.keystroke(keystroke_name)
+                elif key == "/":
+                    mathquill_field.cmd("/")
+                elif key == "_":
+                    # Underscore needs to be a keystroke command, not written text
+                    mathquill_field.cmd("_")
+                elif key == "^":
+                    # Caret/power needs to be a keystroke command, not written text
+                    mathquill_field.cmd("^")
+                elif key.startswith("\\"):
+                    mathquill_field.cmd(key[1:])  # Remove backslash
+                else:
+                    mathquill_field.write(key)
+        
+        # ==================== GENERIC LATEX COMMAND ====================
+        elif action.startswith("\\"):
+            # Remove backslash and use cmd()
+            cmd_name = action[1:]
+            window.console.log(f"Generic LaTeX cmd: {cmd_name}")
+            mathquill_field.cmd(cmd_name)
+        
+        # ==================== REGULAR TEXT/NUMBERS ====================
+        else:
+            # Regular text (numbers, letters, etc.)
+            mathquill_field.write(action)
+        
+        window.console.log(f"✅ Action '{action}' handled successfully")
+              
 class ProblemSolverApp:
+
     def toggle_keyboard_accordion(self, target_id):
+        """Toggle keyboard accordion, move to top, and disable/enable MathQuill textarea"""
+        target_body = document.querySelector(f"#{target_id}")
+        if not target_body:
+            return
+
+        # Prefer closest keyboard-accordion ancestor (more robust than parentElement)
+        accordion = target_body.closest(".keyboard-accordion") or target_body.parentElement
+        if not accordion:
+            return
+
+        # Find the keyboard container (prefer explicit container id, fallback to parent)
+        keyboard_container = document.querySelector("#keyboardAccordionsContainer") or accordion.parentElement
+
+        # Check if currently open
+        is_open = accordion.classList.contains("open")
+
+        # Determine which field to affect (problem input or answer input)
+        current_field = None
+        if getattr(self, "freestyle_problem", False):
+            # Problem is set, use answer field
+            current_field = getattr(self, "freestyle_answer_mf", None)
+        else:
+            # No problem yet, use problem input field
+            current_field = getattr(self, "freestyle_problem_mf", None)
+
+        if is_open:
+            # Close this accordion
+            accordion.classList.remove("open")
+
+            # Check if any accordion is still open
+            all_accordions = document.querySelectorAll(".keyboard-accordion")
+            any_open = False
+            for i in range(all_accordions.length):
+                if all_accordions[i].classList.contains("open"):
+                    any_open = True
+                    break
+
+            # If no accordion is open, re-enable MathQuill textarea (activate keyboard)
+            if not any_open and current_field:
+                try:
+                    el = current_field.el()
+                    textarea = el.querySelector('textarea')
+                    if textarea:
+                        textarea.removeAttribute('readonly')
+                        textarea.removeAttribute('disabled')
+                        textarea.style.pointerEvents = 'auto'
+                        textarea.style.opacity = '1'
+                        window.console.log("✅ MathQuill textarea enabled (no accordion open)")
+                except Exception as e:
+                    window.console.error(f"Failed to enable textarea: {e}")
+        else:
+            # Close all other accordions first
+            all_accordions = document.querySelectorAll(".keyboard-accordion")
+            for i in range(all_accordions.length):
+                all_accordions[i].classList.remove("open")
+
+            # Open this accordion
+            accordion.classList.add("open")
+
+            # Identify if this is the Navigation accordion
+            is_navigation = target_id == "navBody"
+
+            # Move this accordion to the top of the accordion stack:
+            # — find the first existing .keyboard-accordion child (ignore labels/header nodes),
+            # — insert before it, unless it's already the first one.
+            try:
+                if keyboard_container:
+                    first_accordion = keyboard_container.querySelector('.keyboard-accordion')
+                    
+                    if is_navigation:
+                        # Navigation accordion should be in second position
+                        # Find the first accordion and insert after it
+                        if first_accordion:
+                            # Insert after the first accordion (second position)
+                            if first_accordion.nextElementSibling:
+                                keyboard_container.insertBefore(accordion, first_accordion.nextElementSibling)
+                            else:
+                                keyboard_container.appendChild(accordion)
+                            window.console.log("✅ Navigation accordion moved to second position")
+                        else:
+                            # No accordion exists, just append
+                            keyboard_container.appendChild(accordion)
+                            window.console.log("✅ Navigation accordion appended (no existing accordion)")
+                    else:
+                        # Non-navigation accordion goes to first position
+                        # If there's a first accordion and it's not this one, insert before it.
+                        if first_accordion and first_accordion != accordion:
+                            keyboard_container.insertBefore(accordion, first_accordion)
+                            window.console.log("✅ Accordion moved to top (inserted before first .keyboard-accordion)")
+                        else:
+                            # If no .keyboard-accordion exists, append as the first accordion child
+                            if not first_accordion:
+                                keyboard_container.appendChild(accordion)
+                                window.console.log("✅ Accordion appended (no existing .keyboard-accordion found)")
+                            else:
+                                # first_accordion == accordion -> it's already at top, do nothing
+                                window.console.log("ℹ️ Accordion is already at top")
+                        
+                        # After moving non-navigation accordion to top, ensure Navigation is in second position
+                        self._ensure_navigation_second_position(keyboard_container)
+                        
+            except Exception as e:
+                window.console.error(f"Failed to move accordion: {e}")
+
+            # Disable MathQuill textarea when accordion opens
+            if current_field:
+                try:
+                    el = current_field.el()
+                    textarea = el.querySelector('textarea')
+                    if textarea:
+                        textarea.setAttribute('readonly', 'readonly')
+                        textarea.setAttribute('disabled', 'disabled')
+                        textarea.style.pointerEvents = 'none'
+                        textarea.style.opacity = '0.7'
+                        window.console.log("✅ MathQuill textarea disabled")
+                except Exception as e:
+                    window.console.error(f"Failed to disable textarea: {e}")
+
+    def _ensure_navigation_second_position(self, keyboard_container):
+        """Helper method to ensure Navigation accordion is always in second position"""
+        try:
+            # Find the navigation accordion by looking for the one with navBody
+            all_accordions = keyboard_container.querySelectorAll('.keyboard-accordion')
+            nav_accordion = None
+            
+            for i in range(all_accordions.length):
+                acc = all_accordions[i]
+                # Check if this accordion contains the navBody
+                if acc.querySelector('#navBody'):
+                    nav_accordion = acc
+                    break
+            
+            if nav_accordion and all_accordions.length >= 2:
+                first_accordion = all_accordions[0]
+                second_accordion = all_accordions[1]
+                
+                # If navigation is not in second position, move it there
+                if nav_accordion != second_accordion:
+                    # Insert navigation after the first accordion
+                    if first_accordion.nextElementSibling:
+                        keyboard_container.insertBefore(nav_accordion, first_accordion.nextElementSibling)
+                    else:
+                        keyboard_container.appendChild(nav_accordion)
+                    window.console.log("✅ Navigation accordion repositioned to second position")
+                    
+        except Exception as e:
+            window.console.error(f"Failed to ensure navigation second position: {e}")
+                    
+    """
+    ## Summary of Complete Integration:
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │                  KeyboardInputHandler                        │
+    │              (Shared by Both Systems)                        │
+    │  - Handles all input actions (navigation, operators, etc.)  │
+    │  - Includes limit support: \\lim, \\lim_sequence, etc.     │
+    └─────────────────────────────────────────────────────────────┘
+                        ▲                    ▲
+                        │                    │
+          ┌───────────────┴──────┐    ┌───────┴──────────────┐
+          │   Teacher-Based      │    │     Freestyle        │
+          │   Problem Solving    │    │   Problem Solving    │
+          ├──────────────────────┤    ├──────────────────────┤
+          │ generate_minimal_    │    │ handle_freestyle_    │
+          │   buttons()          │    │   input()            │
+          │   - Detects Limit    │    │   - Static keyboard  │
+          │   - Adds lim buttons │    │   - All buttons      │
+          │                      │    │                      │
+          │ handle_input_button()│    │ toggle_keyboard_     │
+          │   - Step-specific    │    │   accordion()        │
+          │   - Calls handler    │    │   - Manages state    │
+          └──────────────────────┘    └──────────────────────┘  
+    """
+    
+    def toggle_keyboard_accordion_old(self, target_id):
         """Toggle keyboard accordion, move to top, and disable/enable MathQuill textarea"""
         target_body = document.querySelector(f"#{target_id}")
         if not target_body:
@@ -1900,38 +2552,8 @@ class ProblemSolverApp:
             window.console.error("No target field available")
             return
 
-        if action == "BACKSPACE":
-            target_field.keystroke("Backspace")
-        elif action == "CLEAR":
-            target_field.latex("")
-        elif action == "MOVE_LEFT":
-            target_field.keystroke("Left")
-        elif action == "MOVE_RIGHT":
-            target_field.keystroke("Right")
-        elif action == "SELECT_LEFT":
-            target_field.keystroke("Shift-Left")
-        elif action == "SELECT_RIGHT":
-            target_field.keystroke("Shift-Right")
-        elif action == "^":
-            target_field.cmd("^")
-        elif action == "_":
-            target_field.cmd("_")
-        elif action.startswith("SEQ:"):
-            sequence = action[4:]
-            keys = sequence.split(",")
-            for key in keys:
-                key = key.strip()
-                if key == "/":
-                    target_field.cmd("/")
-                elif key.startswith("\\"):
-                    target_field.cmd(key)
-                else:
-                    target_field.write(key)
-        else:
-            if action.startswith("\\"):
-                target_field.cmd(action)
-            else:
-                target_field.write(action)
+        # ✅ Use the common KeyboardInputHandler
+        KeyboardInputHandler.handle_action(target_field, action)
 
     def set_freestyle_problem(self, event):
         """Set the freestyle problem from user input and create solve area dynamically"""
@@ -1954,13 +2576,39 @@ class ProblemSolverApp:
             parsed = self.math_parser.parse(problem_latex)
             window.console.log(f"Parsed: {parsed}")
 
-            if not parsed:
+            if parsed is None:
                 window.alert("⚠️ Could not parse the problem. Please check your input.")
                 return
         except Exception as e:
             window.console.error(f"Parse error: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             window.alert(f"⚠️ Parse error: {e}")
             return
+
+        # Validate limit problems
+        try:
+            window.console.log("Validating limit problem...")
+            is_valid, error_msg = self.math_parser.validate_limit(parsed)
+            if not is_valid:
+                window.console.error(f"Invalid limit problem: {error_msg}")
+                window.alert(
+                    f"⚠️ Invalid Problem\n\n"
+                    f"{error_msg}\n\n"
+                    f"Please choose a limit problem with a finite, well-defined value.\n\n"
+                    f"Examples of invalid problems:\n"
+                    f"• Limits that equal infinity\n"
+                    f"• Limits with different left/right values\n"
+                    f"• Oscillating limits (like sin(1/x) as x→0)"
+                )
+                return
+            window.console.log("✅ Limit validation passed")
+        except Exception as e:
+            window.console.error(f"Limit validation error: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
+            # Continue anyway if validation fails (non-limit problems)
+            pass
 
         # Normalize and extract structure
         try:
@@ -1981,6 +2629,8 @@ class ProblemSolverApp:
 
         except Exception as e:
             window.console.error(f"Error processing problem: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             window.alert(f"⚠️ Error: {e}")
             return
 
@@ -2106,7 +2756,7 @@ class ProblemSolverApp:
             return
 
         user_latex = self.freestyle_answer_mf.latex().strip()
-        window.console.log(f"User latex: {user_latex}")
+        window.console.log(f"User latex: '{user_latex}'")
 
         if not user_latex:
             window.alert("⚠️ Enter an answer first")
@@ -2115,16 +2765,42 @@ class ProblemSolverApp:
         # Parse user answer
         try:
             window.console.log("Parsing user answer...")
+            window.console.log(f"Raw user_latex before parsing: '{user_latex}'")
+            
+            # Check if latex is empty or whitespace only
+            if not user_latex or user_latex.isspace():
+                self.show_freestyle_feedback("⚠️ Please enter a valid answer", "#b91c1c")
+                return
+            
             parsed_user = self.math_parser.parse(user_latex)
             window.console.log(f"Parsed user: {parsed_user}")
 
-            if not parsed_user:
+            if parsed_user is None:
+                # Parse returns None - invalid syntax
                 self.show_freestyle_feedback("⚠️ Could not parse your answer. Please check your syntax.", "#b91c1c")
                 return
         except Exception as e:
             window.console.error(f"Parse error: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             self.show_freestyle_feedback(f"⚠️ Parse error: {e}", "#b91c1c")
             return
+
+        # Validate user's limit answer (if it's a limit)
+        try:
+            is_valid, error_msg = self.math_parser.validate_limit(parsed_user)
+            if not is_valid:
+                window.console.error(f"Invalid limit answer: {error_msg}")
+                self.show_freestyle_feedback(
+                    f"⚠️ Invalid answer: {error_msg}<br><br>"
+                    "Please provide a finite, well-defined limit value.",
+                    "#b91c1c"
+                )
+                return
+        except Exception as e:
+            window.console.error(f"Limit validation error: {e}")
+            # Continue anyway if validation fails
+            pass
 
         # Get problem data
         try:
@@ -2143,16 +2819,21 @@ class ProblemSolverApp:
             window.console.log(f"User normalized: {user_normalized}")
         except Exception as e:
             window.console.error(f"Normalization error: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             self.show_freestyle_feedback(f"⚠️ Error normalizing answer: {e}", "#b91c1c")
             return
 
         # Compare answers
         try:
             window.console.log("Comparing answers...")
+            window.console.log(f"Comparing: problem_normalized={problem_normalized}, user_normalized={user_normalized}")
             correct = self.math_parser.compare(problem_normalized, user_normalized)
             window.console.log(f"Correct: {correct}")
         except Exception as e:
             window.console.error(f"Comparison error: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             self.show_freestyle_feedback(f"⚠️ Error comparing answers: {e}", "#b91c1c")
             return
 
@@ -2191,8 +2872,10 @@ class ProblemSolverApp:
 
         except Exception as e:
             window.console.error(f"Error updating UI: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
             self.show_freestyle_feedback(f"⚠️ Error updating display: {e}", "#b91c1c")
-
+            
     def freestyle_finalize(self, event):
         """Finalize the freestyle solution and compare structure"""
         if not self.freestyle_correct:
@@ -2205,7 +2888,7 @@ class ProblemSolverApp:
         user_latex = self.freestyle_answer_mf.latex().strip()
         parsed_user = self.math_parser.parse(user_latex)
 
-        if not parsed_user:
+        if parsed_user is None:
             window.alert("⚠️ Could not parse your answer")
             return
 
@@ -2623,8 +3306,8 @@ class ProblemSolverApp:
         <line x1="18" y1="6" x2="6" y2="18"
               stroke="red" stroke-width="3" stroke-linecap="round"/>
     </svg>"""
-
-    def generate_minimal_buttons(self, step_data):
+    
+    def generate_minimal_buttons_support_svg(self, step_data):
         """Generate minimal button set based on expression and expected structure"""
         
         # Parse expression to extract symbols
@@ -2852,6 +3535,205 @@ class ProblemSolverApp:
                 )
 
         return "\n".join(html_parts)
+
+    def generate_minimal_buttons(self, step_data):
+        """Generate minimal button set based on expression and expected structure"""
+
+        # Parse expression to extract symbols
+        expression_latex = step_data.get("expression", "")
+        expected_struct = step_data.get("expected_structure", {})
+
+        buttons = set()
+
+        # Extract operands from expected structure
+        expected_operands = expected_struct.get("operands", {})
+        expected_operators = expected_struct.get("operators", {})
+
+        # DEBUG: Log structure to see what we're working with
+        window.console.log(f"Expected operands: {expected_operands}")
+        window.console.log(f"Expected operators: {expected_operators}")
+        window.console.log(f"Expression: {expression_latex}")
+
+        # Add ONLY the specific digits needed from operands, plus limited distractors
+        required_digits = set()
+        has_decimal = False
+        has_negative = False
+
+        for operand in expected_operands.keys():
+            if self._is_numeric(operand):
+                # Check for negative numbers
+                if str(operand).startswith("-"):
+                    has_negative = True
+                # Extract individual digits from the number
+                num_str = str(operand).replace("-", "").replace(".", "")
+                for digit in num_str:
+                    if digit.isdigit():
+                        required_digits.add(digit)
+                # Check if decimal point is needed
+                if "." in str(operand):
+                    has_decimal = True
+
+        # Add required digits
+        for digit in required_digits:
+            buttons.add(("digit", digit, digit))
+
+        # Add 2-3 distractor digits (digits NOT in the answer)
+        all_digits = set("0123456789")
+        available_distractors = list(all_digits - required_digits)
+
+        if available_distractors:
+            import random
+            random.seed(hash(expression_latex))  # Consistent distractors per step
+            num_distractors = min(3, len(available_distractors))
+            distractors = random.sample(available_distractors, num_distractors)
+            for digit in distractors:
+                buttons.add(("digit", digit, digit))
+
+        # Add decimal point if needed
+        if has_decimal:
+            buttons.add(("special", ".", "."))
+
+        # Add negative sign if needed (but not if subtraction operator already present)
+        if has_negative and "Add" not in expected_operators:
+            buttons.add(("operator", "−", "-"))
+
+        # Add variables/symbols from operands
+        for operand in expected_operands.keys():
+            if not self._is_numeric(operand) and operand != "-1":
+                # Clean symbol name (remove backslashes)
+                clean_sym = operand.replace("\\", "")
+                if len(clean_sym) <= 3:  # Only add short symbols as buttons
+                    buttons.add(("symbol", clean_sym, clean_sym))
+
+        # Add operators based on expected structure
+        operator_map = {
+            "Add": ("+", "+"),
+            "Mul": ("×", "\\times"),
+            "Pow": ("^", "^"),
+            "Derivative": ("d/dx", "SEQ:d,/,d,x"),
+            "Limit": ("lim", "\\lim"),  # ✅ Simple limit
+            "sin": ("sin", "\\sin"),
+            "cos": ("cos", "\\cos"),
+            "tan": ("tan", "\\tan"),
+            "cot": ("cot", "\\cot"),
+            "sec": ("sec", "\\sec"),
+            "csc": ("csc", "\\csc"),
+            "log": ("log", "\\log"),
+            "ln": ("ln", "\\ln"),
+            "exp": ("exp", "\\exp"),
+            "sqrt": ("√", "\\sqrt"),
+            "Abs": ("|x|", "\\left|"),
+            "factorial": ("!", "!"),
+        }
+
+        for op in expected_operators.keys():
+            if op in operator_map:
+                label, latex = operator_map[op]
+                buttons.add(("operator", label, latex))
+
+        # ✅ ADD: If Limit is detected, also add the full limit sequence and related symbols
+        if "Limit" in expected_operators:
+            buttons.add(("operator", "lim→", "\\lim_sequence"))
+            buttons.add(("operator", "→", "\\to"))
+            buttons.add(("operator", "∞", "\\infty"))
+            window.console.log("Added limit buttons")
+
+        # Additional operator detection from expression itself
+        # Check for derivative notation
+        if "\\frac{d}{dx}" in expression_latex or "\\frac{d}{d" in expression_latex or "Derivative" in str(expected_operators):
+            buttons.add(("operator", "d/dx", "SEQ:d,/,d,x"))
+            window.console.log("Added derivative button")
+
+        # Check for multiplication symbols
+        if "\\cdot" in expression_latex or "\\times" in expression_latex or "·" in expression_latex or "*" in expression_latex or "Mul" in expected_operators:
+            if ("operator", "×", "\\times") not in buttons:
+                buttons.add(("operator", "×", "\\times"))
+                window.console.log("Added multiplication button")
+
+        # Check for division symbols
+        if "/" in expression_latex or "\\div" in expression_latex or "÷" in expression_latex:
+            buttons.add(("operator", "÷", "/"))
+            window.console.log("Added division button from expression")
+
+        # Check if division is also needed (represented as Mul with Pow(-1))
+        if "Mul" in expected_operators and "Pow" in expected_operators:
+            buttons.add(("operator", "÷", "/"))
+
+        # Check for subtraction (represented as Add with Mul(-1))
+        if "Add" in expected_operators:
+            buttons.add(("operator", "−", "-"))
+
+        # Always add parentheses, power, and subscript if there are operators
+        if expected_operators or len(required_digits) > 1:
+            buttons.add(("special", "(", "("))
+            buttons.add(("special", ")", ")"))
+            buttons.add(("special", "x^", "^"))
+            buttons.add(("special", "x_", "_"))
+
+        # Check if matrix notation is needed
+        needs_matrix = False
+
+        # Check operators for matrix operations
+        matrix_operators = ["MatMul", "MatAdd", "Transpose", "Inverse", "Determinant"]
+        if any(op in expected_operators for op in matrix_operators):
+            needs_matrix = True
+            window.console.log("Matrix detected from operators")
+
+        # Check operands for matrix notation
+        if not needs_matrix:
+            for operand in expected_operands.keys():
+                operand_str = str(operand)
+                if "Matrix" in operand_str or "[" in operand_str or "," in operand_str:
+                    needs_matrix = True
+                    window.console.log(f"Matrix detected from operand: {operand_str}")
+                    break
+
+        # Check expression itself for matrix notation
+        if not needs_matrix and "[" in expression_latex:
+            needs_matrix = True
+            window.console.log("Matrix detected from expression")
+
+        # Add matrix buttons if needed
+        if needs_matrix:
+            window.console.log("Adding matrix brackets and comma")
+            buttons.add(("special", "[", "["))
+            buttons.add(("special", "]", "]"))
+            buttons.add(("special", ",", ","))
+
+        # Check if fraction notation is needed
+        if "Mul" in expected_operators and "Pow" in expected_operators:
+            buttons.add(("special", "÷", "\\frac"))
+
+        # Add navigation buttons for MathQuill field
+        buttons.add(("navigation", "◄", "MOVE_LEFT"))
+        buttons.add(("navigation", "►", "MOVE_RIGHT"))
+        buttons.add(("navigation", "⇤", "SELECT_LEFT"))
+        buttons.add(("navigation", "⇥", "SELECT_RIGHT"))
+
+        # Always add backspace and clear
+        buttons.add(("delete", "⌫", "BACKSPACE"))
+        buttons.add(("delete", "Clear", "CLEAR"))
+
+        # Sort buttons by type and label
+        sorted_buttons = sorted(buttons, key=lambda x: (
+            0 if x[0] == "digit" else
+            1 if x[0] == "symbol" else
+            2 if x[0] == "operator" else
+            3 if x[0] == "special" else
+            4 if x[0] == "navigation" else
+            5 if x[0] == "delete" else 6,
+            x[1]
+        ))
+
+        html_parts = []
+        for btn_type, label, action in sorted_buttons:
+            safe_label = html.escape(label)
+            html_parts.append(
+                f"<button class='input-btn {btn_type}' data-action='{action}'>{safe_label}</button>"
+            )
+
+        return "\n".join(html_parts)
+      
     def _is_numeric(self, s):
         """Check if string represents a number"""
         try:
@@ -2861,6 +3743,24 @@ class ProblemSolverApp:
             return False
     
     def handle_input_button(self, step_idx, action, answer_field):
+        """Handle minimal button clicks to input into MathQuill field"""
+        # Get the correct answer field from solve_state using step_idx
+        if not hasattr(self, 'solve_state') or step_idx >= len(self.solve_state):
+            window.console.error(f"Invalid step_idx: {step_idx}")
+            return
+
+        # Always get the field from solve_state to ensure we have the right one
+        step = self.solve_state[step_idx]
+        answer_field = step.get("answer_mf")
+
+        if not answer_field:
+            window.console.error(f"No answer field for step {step_idx}")
+            return
+
+        # ✅ Use the common KeyboardInputHandler
+        KeyboardInputHandler.handle_action(answer_field, action)
+          
+    def handle_input_button_old(self, step_idx, action, answer_field):
         """Handle minimal button clicks to input into MathQuill field"""
         # Get the correct answer field from solve_state using step_idx
         if not hasattr(self, 'solve_state') or step_idx >= len(self.solve_state):

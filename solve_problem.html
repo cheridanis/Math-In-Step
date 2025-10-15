@@ -7,6 +7,13 @@
 
   <!-- External Libraries -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
+<script>
+window.MathJax = {
+  chtml: {
+    scale: 1.2  // ← increase this number (1.0 = 100%, 1.4 = 140%)
+  }
+};
+</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
@@ -31,16 +38,19 @@
     loadPyScript();
   </script>
 
-  <style>
-/* Target the MathQuill editable container */
+<style>
+  /* Target the MathQuill editable container */
 .mq-editable-field {
-  /* Base “outer” border style */
+  /* Base "outer" border style */
   border: 2px solid #007bff !important;
   border-radius: 4px !important;
   position: relative; /* ensure outline etc. are properly placed */
+  overflow-x: auto !important;  /* Add horizontal scroll */
+  overflow-y: hidden !important;  /* Prevent vertical scroll */
+  max-width: 100%;  /* Respect container width */
 }
 
-/* Remove or override MathQuill’s focus styling */
+/* Remove or override MathQuill's focus styling */
 .mq-editable-field.mq-focused,
 .mq-math-mode .mq-editable-field.mq-focused {
   /* Keep your border color on focus */
@@ -51,7 +61,7 @@
   border-color: #007bff !important;
 }
 
-/* If you used “double-border” via outline + border trick */
+/* If you used "double-border" via outline + border trick */
 .mq-editable-field {
   border: 2px solid #005cbf !important;           /* inner border */
   outline: 3px solid #99c0ff !important;           /* outer border / highlight */
@@ -63,452 +73,856 @@
   outline: 3px solid #3399ff !important;
 }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+/* Minimal Input Buttons - BIGGER WITH NO MARGINS */
+.input-btn {
+  padding: 12px 8px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    /* Minimal Input Buttons */
-    .input-btn {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 500;
-      transition: all 0.15s ease;
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .input-btn:hover {
-      background: #f1f5f9;
-      border-color: #0b6efd;
-      transform: translateY(-1px);
-    }
-    
-    .input-btn:active {
-      transform: translateY(0);
-      background: #e2e8f0;
-    }
-    .input-btn.symbol {
-      background: #fef3c7;
-      border-color: #f59e0b;
-      font-weight: 600;
-      font-style: italic;
-    }
-    
-    .input-btn.symbol:hover {
-      background: #fde68a;
-    }
-    .input-btn.special {
-      background: #fef3c7;
-      border-color: #fbbf24;
-    }
-    
-    .input-btn.special:hover {
-      background: #fde68a;
-    }
-    
-    .input-btn.operator {
-      background: #dbeafe;
-      border-color: #3b82f6;
-      font-weight: 600;
-    }
-    
-    .input-btn.operator:hover {
-      background: #bfdbfe;
-    }
-    
-    .input-btn.navigation {
-      background: #e0e7ff;
-      border-color: #818cf8;
-      font-size: 14px;
-    }
-    
-    .input-btn.navigation:hover {
-      background: #c7d2fe;
-    }
-    
-    .input-btn.delete {
-      background: #fee2e2;
-      border-color: #ef4444;
-    }
-    
-    .input-btn.delete:hover {
-      background: #fecaca;
-    }
-    /* Base Styles */
-    * { box-sizing: border-box; }
-    body { 
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
-      margin: 0; 
-      padding: 0;
-      background: #f3f6fb; 
-      color: #0b1020; 
-      overflow-x: hidden;
-    }
-    
-    /* Layout */
-    .app-container {
-      display: flex;
-      min-height: 100vh;
-    }
-    
-    /* Sidebar */
-    .sidebar {
-      width: 320px;
-      background: #fff;
-      box-shadow: 4px 0 12px rgba(0,0,0,0.1);
-      padding: 16px;
-      overflow-y: auto;
-      flex-shrink: 0;
-      transition: transform 0.3s ease;
-    }
-    
-    .sidebar-header {
-      margin-bottom: 20px;
-    }
-    
-    .nav-menu {
-      margin-bottom: 20px;
-    }
-    
-    .nav-item {
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    
-    .nav-item:hover {
-      background: #f0f4ff;
-    }
-    
-    .nav-item.active {
-      background: #dbeafe;
-      color: #1d4ed8;
-    }
-    
-    .nav-icon {
-      margin-right: 12px;
-      font-size: 18px;
-    }
-    
-    /* Main Content */
-    .main-content {
-      flex: 1;
-      padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    /* Pages */
-    .page {
-      display: none;
-    }
-    
-    .page.active {
-      display: block;
-    }
-    
-    /* Components */
-    .panel { 
-      background: #fff; 
-      padding: 16px; 
-      border-radius: 10px; 
-      box-shadow: 0 6px 20px rgba(11,20,40,0.06); 
-      margin-bottom: 16px; 
-    }
-    
-    .btn { 
-      padding: 10px 16px; 
-      border-radius: 8px; 
-      border: none; 
-      cursor: pointer; 
-      background: #0b6efd; 
-      color: #fff; 
-      font-size: 15px; 
-      font-weight: 500; 
-      transition: all 0.2s ease;
-      width: 100%;
-      margin-bottom: 8px;
-    }
-    
-    .btn:hover { 
-      transform: translateY(-1px); 
-      box-shadow: 0 4px 12px rgba(11,110,253,0.3); 
-    }
-    
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .btn.ghost { 
-      background: transparent; 
-      color: #0b6efd; 
-      border: 1px solid #dbe9ff; 
-    }
-    
-    .btn.ghost:hover { 
-      background: rgba(11,110,253,0.05); 
-    }
-    
-    label { 
-      display: block; 
-      font-weight: 600; 
-      margin-bottom: 8px;
-      font-size: 15px;
-    }
-    
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #e6eef8;
-      font-size: 14px;
-      font-family: monospace;
-      resize: vertical;
-    }
-    
-    input[type="file"] {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      border: 2px dashed #0b6efd;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      cursor: pointer;
-      background: #f0f9ff;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-    
-    input[type="file"]:hover {
-      background: #dbeafe;
-      border-color: #1d4ed8;
-    }
-    
-    .math-input { 
-      min-height: 44px; 
-      border: 2px solid #e6eef8; 
-      border-radius: 8px; 
-      padding: 10px; 
-      background: #fff;
-      font-size: 18px;
-    }
-    
-    /* Accordion */
-    .accordion-problem { 
-      border: 2px solid #e2e8f0; 
-      border-radius: 12px; 
-      margin-bottom: 16px; 
-      background: #ffffff; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-      overflow: hidden; 
-    }
-    
-    .accordion-problem.open { 
-      border-color: #3b82f6; 
-    }
-    
-    .accordion-problem.finished { 
-      border-color: #10b981; 
-      background: #f0fdf4; 
-    }
-    
-    .accordion-header { 
-      padding: 16px; 
-      font-weight: 700; 
-      cursor: pointer; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      background: #f0f4ff; 
-      transition: background 0.2s ease;
-      font-size: 16px;
-      min-height: 60px;
-    }
-    
-    .accordion-header:hover { 
-      background: #dbeafe; 
-    }
-    
-    .accordion-body { 
-      max-height: 0; 
-      overflow: hidden; 
-      transition: max-height 0.3s ease-in-out; 
-      padding: 0 16px; 
-    }
-    
-    .accordion-problem.open .accordion-body { 
-      max-height: 10000px; 
-      padding: 16px; 
-    }
-    
-    .progress-summary { 
-      font-size: 14px; 
-      color: #6b7280; 
-      font-weight: 600; 
-    }
-    
-    /* Step styling */
-    .step {
-      padding: 16px;
-      font-size: 16px;
-    }
-    
-    .step-description {
-      background: #f0fdf4;
-      padding: 14px;
-      border-radius: 8px;
-      margin-bottom: 14px;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-    
-    .step-feedback {
-      font-size: 15px;
-      padding: 10px;
-      border-radius: 6px;
-      margin-top: 10px;
-      font-weight: 600;
-    }
-    
-    .attempts-history {
-      margin-top: 12px;
-      max-height: 400px;
-      overflow-y: auto;
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    
-    /* Loading */
-    #loadingOverlay { 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      right: 0; 
-      bottom: 0; 
-      background: rgba(15,23,42,0.95); 
-      z-index: 9999; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center; 
-      color: #fff; 
-    }
-    
-    .spinner { 
-      width: 60px; 
-      height: 60px; 
-      border: 4px solid rgba(59,130,246,0.3); 
-      border-top-color: #3b82f6; 
-      border-radius: 50%; 
-      animation: spin 1s linear infinite; 
-      margin-bottom: 20px; 
-    }
-    
-    @keyframes spin { 
-      to { transform: rotate(360deg); } 
-    }
-    
-    /* Storage Indicator */
-    .storage-indicator { 
-      position: fixed; 
-      bottom: 16px; 
-      right: 16px; 
-      padding: 10px 14px; 
-      background: #10b981; 
-      color: #fff; 
-      border-radius: 8px; 
-      font-size: 13px; 
-      opacity: 0; 
-      transition: opacity 0.3s; 
-      pointer-events: none; 
-      z-index: 1000;
-      font-weight: 600;
-    }
-    
-    .storage-indicator.show { 
-      opacity: 1; 
-    }
-    
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-      .app-container {
-        flex-direction: column;
-      }
-      
-      .sidebar {
-        position: fixed;
-        left: -320px;
-        top: 0;
-        width: 320px;
-        height: 100vh;
-        z-index: 1000;
-        box-shadow: 4px 0 12px rgba(0,0,0,0.1);
-      }
-      
-      .sidebar.open {
-        left: 0;
-      }
-      
-      .main-content {
-        padding: 16px;
-      }
-      
-      .menu-btn {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 1001;
-        width: 48px;
-        height: 48px;
-        background: #0b6efd;
-        color: #fff;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        box-shadow: 0 4px 12px rgba(11,110,253,0.4);
-      }
-      
-      .sidebar-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 999;
-        display: none;
-      }
-      
-      .sidebar-overlay.show {
-        display: block;
-      }
-    }
-    
-    @media (min-width: 769px) {
-      .menu-btn,
-      .sidebar-overlay {
-        display: none !important;
-      }
-    }
-  </style>
+.input-btn:hover {
+  background: #f1f5f9;
+  border-color: #0b6efd;
+  transform: translateY(-1px);
+}
+
+.input-btn:active {
+  transform: translateY(0);
+  background: #e2e8f0;
+}
+
+.input-btn.symbol {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.input-btn.symbol:hover {
+  background: #fde68a;
+}
+
+.input-btn.special {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+.input-btn.special:hover {
+  background: #fde68a;
+}
+
+.input-btn.operator {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
+
+.input-btn.operator:hover {
+  background: #bfdbfe;
+}
+
+.input-btn.navigation {
+  background: #e0e7ff;
+  border-color: #818cf8;
+  font-size: 14px;
+}
+
+.input-btn.navigation:hover {
+  background: #c7d2fe;
+}
+
+.input-btn.delete {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.input-btn.delete:hover {
+  background: #fecaca;
+}
+
+/* Keyboard Activate/Lock Buttons - More Prominent */
+.input-btn.keyboard-activate,
+.input-btn.keyboard-lock {
+  background: linear-gradient(135deg, rgba(145, 234, 102, 0.4) 0%, rgba(145, 234, 102, 0.4) 100%);
+  border: 2px solid #5a67d8;
+  color: #000;
+  font-weight: 700;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 4px 12px rgba(145, 234, 102, 0.4);
+  transition: all 0.2s ease;
+}
+
+.input-btn.keyboard-activate:hover,
+.input-btn.keyboard-lock:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 234, 163, 0.6);
+  background: linear-gradient(135deg, rgba(145, 234, 102, 0.5) 0%, rgba(145, 234, 102, 0.5) 100%);
+}
+
+.input-btn.keyboard-activate:active,
+.input-btn.keyboard-lock:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(145, 234, 102, 0.4);
+}
+
+.input-btn.keyboard-activate svg,
+.input-btn.keyboard-lock svg {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  width: 32px;
+  height: 32px;
+}
+
+.input-btn.keyboard-activate span,
+.input-btn.keyboard-lock span {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Base Styles - MINIMAL MARGINS */
+* { 
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; 
+  margin: 0; 
+  padding: 0;
+  background: #f3f6fb; 
+  color: #0b1020; 
+  overflow-x: hidden;
+}
+
+/* Layout - MINIMAL MARGINS */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  background: #fff;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+  padding: 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  margin-bottom: 20px;
+}
+
+.nav-menu {
+  margin-bottom: 20px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background: #f0f4ff;
+}
+
+.nav-item.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.nav-icon {
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+/* Main Content - MINIMAL MARGINS */
+.main-content {
+  flex: 1;
+  padding: 10px;
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+}
+
+/* Pages */
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+/* Components - MINIMAL PADDING */
+.panel { 
+  background: #fff; 
+  padding: 10px;
+  border-radius: 8px; 
+  box-shadow: 0 6px 20px rgba(11,20,40,0.06); 
+  margin-bottom: 8px;
+}
+
+.btn { 
+  padding: 10px 16px; 
+  border-radius: 8px; 
+  border: none; 
+  cursor: pointer; 
+  background: #0b6efd; 
+  color: #fff; 
+  font-size: 15px; 
+  font-weight: 500; 
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.btn:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 4px 12px rgba(11,110,253,0.3); 
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.ghost { 
+  background: transparent; 
+  color: #0b6efd; 
+  border: 1px solid #dbe9ff; 
+}
+
+.btn.ghost:hover { 
+  background: rgba(11,110,253,0.05); 
+}
+
+label { 
+  display: block; 
+  font-weight: 600; 
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e6eef8;
+  font-size: 14px;
+  font-family: monospace;
+  resize: vertical;
+}
+
+input[type="file"] {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed #0b6efd;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  background: #f0f9ff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+input[type="file"]:hover {
+  background: #dbeafe;
+  border-color: #1d4ed8;
+}
+
+.math-input { 
+  min-height: 44px; 
+  border: 2px solid #e6eef8; 
+  border-radius: 8px; 
+  padding: 10px; 
+  background: #fff;
+  font-size: 18px;
+  overflow-x: auto;  /* Add horizontal scroll */
+  overflow-y: hidden;  /* Prevent vertical scroll */
+  white-space: nowrap;  /* Prevent wrapping */
+}
+
+/* Accordion */
+.accordion-problem { 
+  border: 2px solid #e2e8f0; 
+  border-radius: 12px; 
+  margin-bottom: 16px; 
+  background: #ffffff; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+  overflow: hidden; 
+}
+
+.accordion-problem.open { 
+  border-color: #3b82f6; 
+}
+
+.accordion-problem.finished { 
+  border-color: #10b981; 
+  background: #f0fdf4; 
+}
+
+.accordion-header { 
+  padding: 16px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  background: #f0f4ff; 
+  transition: background 0.2s ease;
+  font-size: 16px;
+  min-height: 60px;
+}
+
+.accordion-header:hover { 
+  background: #dbeafe; 
+}
+
+.accordion-body { 
+  max-height: 0; 
+  overflow: hidden; 
+  transition: max-height 0.3s ease-in-out; 
+  padding: 0 16px; 
+}
+
+.accordion-problem.open .accordion-body { 
+  max-height: 10000px; 
+  padding: 16px; 
+}
+
+.progress-summary { 
+  font-size: 14px; 
+  color: #6b7280; 
+  font-weight: 600; 
+}
+
+/* Step styling - MINIMAL PADDING */
+.step {
+  padding: 10px;
+  font-size: 16px;
+}
+
+.step-description {
+  background: #f0fdf4;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: auto;  /* Add horizontal scroll */
+  overflow-y: hidden;  /* Prevent vertical scroll */
+}
+
+.step-feedback {
+  font-size: 15px;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  font-weight: 600;
+  overflow-x: auto;  /* Add horizontal scroll */
+  overflow-y: hidden;
+}
+
+.attempts-history {
+  margin-top: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;  /* Add horizontal scroll for math */
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Problem description with MathJax */
+.problem-description {
+  overflow-x: auto;  /* Add horizontal scroll */
+  overflow-y: hidden;
+}
+
+/* Freestyle problem display */
+#freestyleProblemDisplay {
+  overflow-x: auto;  /* Add horizontal scroll */
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+/* Smooth scrollbar styling for webkit browsers */
+.math-input::-webkit-scrollbar,
+.mq-editable-field::-webkit-scrollbar,
+.step-description::-webkit-scrollbar,
+.problem-description::-webkit-scrollbar,
+#freestyleProblemDisplay::-webkit-scrollbar,
+.step-feedback::-webkit-scrollbar,
+.attempts-history::-webkit-scrollbar {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.math-input::-webkit-scrollbar-thumb,
+.mq-editable-field::-webkit-scrollbar-thumb,
+.step-description::-webkit-scrollbar-thumb,
+.problem-description::-webkit-scrollbar-thumb,
+#freestyleProblemDisplay::-webkit-scrollbar-thumb,
+.step-feedback::-webkit-scrollbar-thumb,
+.attempts-history::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.math-input::-webkit-scrollbar-thumb:hover,
+.mq-editable-field::-webkit-scrollbar-thumb:hover,
+.step-description::-webkit-scrollbar-thumb:hover,
+.problem-description::-webkit-scrollbar-thumb:hover,
+#freestyleProblemDisplay::-webkit-scrollbar-thumb:hover,
+.step-feedback::-webkit-scrollbar-thumb:hover,
+.attempts-history::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading */
+#loadingOverlay { 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  background: rgba(15,23,42,0.95); 
+  z-index: 9999; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  color: #fff; 
+}
+
+.spinner { 
+  width: 60px; 
+  height: 60px; 
+  border: 4px solid rgba(59,130,246,0.3); 
+  border-top-color: #3b82f6; 
+  border-radius: 50%; 
+  animation: spin 1s linear infinite; 
+  margin-bottom: 20px; 
+}
+
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}
+
+/* Storage Indicator */
+.storage-indicator { 
+  position: fixed; 
+  bottom: 16px; 
+  right: 16px; 
+  padding: 10px 14px; 
+  background: #10b981; 
+  color: #fff; 
+  border-radius: 8px; 
+  font-size: 13px; 
+  opacity: 0; 
+  transition: opacity 0.3s; 
+  pointer-events: none; 
+  z-index: 1000;
+  font-weight: 600;
+}
+
+.storage-indicator.show { 
+  opacity: 1; 
+}
+
+/* Mobile Responsive - MINIMAL MARGINS FOR AESTHETICS */
+@media (max-width: 768px) {
+  /* Remove all default padding from body and html */
+  html {
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    padding: 0;
+    margin: 0;
+    font-size: 17px;
+  }
+  
+  .app-container {
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* Full-width sidebar on mobile */
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    width: 85%;
+    max-width: 400px;
+    height: 100vh;
+    z-index: 1000;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+    padding: 20px;
+  }
+  
+  .sidebar.open {
+    left: 0;
+  }
+  
+  /* MINIMAL MARGINS FOR AESTHETICS - Just enough breathing room */
+  .main-content {
+    padding: 60px 4px 4px 4px;  /* Very minimal 4px side margins */
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  /* Menu button with minimal margin */
+  .menu-btn {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+    z-index: 1001;
+    width: 50px;
+    height: 50px;
+    background: #0b6efd;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 16px rgba(11,110,253,0.5);
+    font-weight: bold;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    display: none;
+  }
+  
+  .sidebar-overlay.show {
+    display: block;
+  }
+  
+  /* LARGER FONTS ON MOBILE */
+  h3 {
+    font-size: 22px;
+  }
+  
+  h4 {
+    font-size: 20px;
+  }
+  
+  label {
+    font-size: 17px;
+  }
+  
+  /* Accordion with minimal padding */
+  .accordion-problem {
+    margin-bottom: 6px;  /* Minimal margin between accordions */
+    border-radius: 10px;
+  }
+  
+  .accordion-header {
+    padding: 14px 6px;  /* Minimal side padding */
+    font-size: 17px;
+    min-height: 60px;
+  }
+  
+  .progress-summary {
+    font-size: 16px;
+  }
+  
+  .accordion-body {
+    padding: 0 6px;  /* Minimal side padding */
+  }
+  
+  .accordion-problem.open .accordion-body {
+    padding: 8px 6px;  /* Minimal side padding when open */
+  }
+  
+  /* Minimal padding on panels */
+  .panel {
+    padding: 6px;  /* Minimal padding */
+    margin-bottom: 4px;
+    border-radius: 8px;
+  }
+  
+  /* Minimal padding on steps */
+  .step {
+    padding: 6px;  /* Minimal padding */
+    font-size: 17px;
+  }
+  
+  .step-description {
+    padding: 10px;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  
+  /* BIGGER MOBILE INPUT BUTTONS - NEARLY FULL WIDTH */
+  .input-btn {
+    padding: 16px 8px;
+    min-height: 60px;
+    font-size: 19px;
+    border-radius: 6px;
+    border-width: 1.5px;
+    font-weight: 600;
+  }
+  
+  .input-btn.navigation {
+    font-size: 17px;
+    min-height: 60px;
+  }
+  
+  /* 4 COLUMN GRID - MINIMAL GAPS */
+  .button-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 3px !important;  /* Minimal gap for aesthetics */
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* BIGGER KEYBOARD BUTTONS */
+  .input-btn.keyboard-activate,
+  .input-btn.keyboard-lock {
+    min-height: 80px;
+    grid-column: span 2;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(145, 234, 102, 0.5);
+    padding: 12px 8px;
+  }
+  
+  .input-btn.keyboard-activate svg,
+  .input-btn.keyboard-lock svg {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .input-btn.keyboard-activate span,
+  .input-btn.keyboard-lock span {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  
+  /* Larger math input field */
+  .math-input {
+    min-height: 65px;
+    padding: 14px;
+    font-size: 22px;
+    border-width: 3px;
+  }
+  
+  /* Larger MathQuill fields */
+  .mq-editable-field {
+    font-size: 22px !important;
+    min-height: 65px;
+    padding: 14px !important;
+  }
+  
+  /* Ensure math containers scroll smoothly on mobile */
+  .math-input,
+  .mq-editable-field,
+  .step-description,
+  .problem-description,
+  #freestyleProblemDisplay,
+  .step-feedback {
+    -webkit-overflow-scrolling: touch;  /* Smooth scrolling on iOS */
+  }
+  
+  /* Larger scrollbar on mobile for easier dragging */
+  .math-input::-webkit-scrollbar,
+  .mq-editable-field::-webkit-scrollbar,
+  .step-description::-webkit-scrollbar,
+  .problem-description::-webkit-scrollbar,
+  #freestyleProblemDisplay::-webkit-scrollbar,
+  .step-feedback::-webkit-scrollbar,
+  .attempts-history::-webkit-scrollbar {
+    height: 8px;  /* Larger on mobile */
+  }
+  
+  /* Larger action buttons */
+  .btn {
+    padding: 18px 20px;
+    font-size: 19px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    min-height: 60px;
+    font-weight: 600;
+  }
+  
+  /* Larger feedback text */
+  .step-feedback {
+    font-size: 17px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  
+  /* Larger attempts history */
+  .attempts-history {
+    font-size: 16px;
+    padding: 14px;
+    margin-top: 16px;
+  }
+  
+  /* Larger nav items in sidebar */
+  .nav-item {
+    padding: 16px 18px;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  
+  .nav-icon {
+    font-size: 22px;
+    margin-right: 14px;
+  }
+  
+  /* Larger textarea */
+  textarea {
+    min-height: 150px;
+    padding: 14px;
+    font-size: 16px;
+  }
+  
+  /* Larger file input */
+  input[type="file"] {
+    padding: 16px;
+    font-size: 16px;
+  }
+  
+  /* Optimize storage indicator for mobile */
+  .storage-indicator {
+    bottom: 12px;
+    right: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  /* Larger loading overlay text */
+  #loadingOverlay {
+    font-size: 18px;
+  }
+  
+  .spinner {
+    width: 70px;
+    height: 70px;
+    border-width: 5px;
+  }
+  
+  /* Optimize problem set info on mobile */
+  #problemSetInfo {
+    font-size: 17px;
+  }
+  
+  #currentProblemSetDescription {
+    font-size: 16px;
+  }
+  
+  #currentProblemSetUuid {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
+@media (min-width: 769px) {
+  .menu-btn,
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+/* Keyboard Accordions */
+.keyboard-accordion {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.keyboard-accordion-header {
+  background: #f0f4ff;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 15px;
+}
+
+.keyboard-accordion-header:hover {
+  background: #dbeafe;
+}
+
+.keyboard-accordion.open .keyboard-accordion-header {
+  background: #dbeafe;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.keyboard-accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: #fafbfc;
+}
+
+.keyboard-accordion.open .keyboard-accordion-body {
+  max-height: 500px;
+}
+
+.keyboard-accordion-icon {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.keyboard-accordion.open .keyboard-accordion-icon {
+  transform: rotate(180deg);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .keyboard-accordion-header {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+}
+</style>
 </head>
 <body>
   <!-- Loading Overlay -->
@@ -547,6 +961,10 @@
           <span class="nav-icon">🧮</span>
           <span>Problems</span>
         </div>
+        <div class="nav-item" data-page="freestyle">
+          <span class="nav-icon">✏️</span>
+          <span>Free Style Problem</span>
+        </div>
         <div class="nav-item" data-page="load">
           <span class="nav-icon">📂</span>
           <span>Load</span>
@@ -572,7 +990,210 @@
         </div>
         <div id="solveProblemsContainer"></div>
       </div>
+      <!-- Free Style Problem Page -->
+<div id="freestylePage" class="page">
+  <div class="panel">
+    <h3>✏️ Free Style Problem</h3>
+    <p style="color:#64748b;margin-bottom:16px;">Create and solve your own problem. Enter a mathematical expression, then try to solve it!</p>
+    
+    <div style="margin-bottom:20px;">
+      <label>📝 Problem Expression</label>
+      <div style="overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:2px solid #e6eef8;border-radius:8px;padding:10px;background:#fff;">
+        <div id="freestyleProblemInput" class="math-input" style="min-height:60px;border:none;padding:0;"></div>
+      </div>
+      <button id="setFreestyleProblem" class="btn" style="margin-top:10px;">Set Problem</button>
+    </div>
+    <div id="freestyleSolveArea" style="display:none;">
+      <hr style="margin:20px 0;border:none;border-top:2px solid #e5e7eb;">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+  <button id="freestyleReset" class="btn ghost" style="background:#dc2626;color:#fff;">Reset Problem</button>
+  <button id="freestyleFinalize" class="btn ghost" disabled>Finalize Solution</button>
+  <button id="freestyleSubmit" class="btn">Submit Attempt</button>
+</div>
+      <div style="background:#f0fdf4;padding:16px;border-radius:8px;margin-bottom:16px;">
+        <div style="font-weight:700;margin-bottom:8px;">Problem to Solve:</div>
+        <div id="freestyleProblemDisplay" style="font-size:20px;"></div>
+      </div>
       
+      <div style="margin-bottom:20px;">
+        <label>🎯 Your Solution</label>
+        <div style="overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:2px solid #e6eef8;border-radius:8px;padding:10px;background:#fff;">
+          <div id="freestyleAnswerInput" class="math-input" style="min-height:60px;border:none;padding:0;"></div>
+        </div>
+<!-- ✅ FEEDBACK AREA - THIS IS THE CRITICAL PART -->
+      <div id="freestyleFeedback" style="margin-top:16px;min-height:20px;"></div>
+      
+
+  </div>
+</div>
+    <!-- Comprehensive Keyboard - MULTIPLE ACCORDIONS -->
+<div style="margin-top:16px;">
+  <div style="font-weight:600;margin-bottom:8px;font-size:15px;">⌨️ Input Keyboard:</div>
+  
+  <!-- Numbers & Basic Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="numbersBody">
+      <span>🔢 Numbers & Basic</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="numbersBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn digit" data-action="7">7</button>
+        <button class="input-btn digit" data-action="8">8</button>
+        <button class="input-btn digit" data-action="9">9</button>
+        <button class="input-btn operator" data-action="/">÷</button>
+        <button class="input-btn digit" data-action="4">4</button>
+        <button class="input-btn digit" data-action="5">5</button>
+        <button class="input-btn digit" data-action="6">6</button>
+        <button class="input-btn operator" data-action="\\times">×</button>
+        <button class="input-btn digit" data-action="1">1</button>
+        <button class="input-btn digit" data-action="2">2</button>
+        <button class="input-btn digit" data-action="3">3</button>
+        <button class="input-btn operator" data-action="-">−</button>
+        <button class="input-btn digit" data-action="0">0</button>
+        <button class="input-btn special" data-action=".">.</button>
+        <button class="input-btn operator" data-action="+">+</button>
+        <button class="input-btn special" data-action="=">=</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Algebra Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="algebraBody">
+      <span>📐 Algebra</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="algebraBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn symbol" data-action="x">x</button>
+        <button class="input-btn symbol" data-action="y">y</button>
+        <button class="input-btn symbol" data-action="z">z</button>
+        <button class="input-btn special" data-action="^">x^n</button>
+        <button class="input-btn symbol" data-action="a">a</button>
+        <button class="input-btn symbol" data-action="b">b</button>
+        <button class="input-btn symbol" data-action="c">c</button>
+        <button class="input-btn special" data-action="_">x_n</button>
+        <button class="input-btn special" data-action="\\sqrt">√</button>
+        <button class="input-btn special" data-action="\\frac">÷(fr)</button>
+        <button class="input-btn special" data-action="(">(</button>
+        <button class="input-btn special" data-action=")">)</button>
+        <button class="input-btn special" data-action="|">|x|</button>
+        <button class="input-btn operator" data-action="\\times">×</button>
+        <button class="input-btn operator" data-action="/">÷</button>
+        <button class="input-btn operator" data-action="+">+</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Calculus Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="calculusBody">
+      <span>∫ Calculus</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="calculusBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn operator" data-action="SEQ:d,/,d,x">d/dx</button>
+        <button class="input-btn operator" data-action="\\int">∫</button>
+        <button class="input-btn operator" data-action="\\sum">Σ</button>
+        <button class="input-btn operator" data-action="\\lim">lim</button>
+        <button class="input-btn operator" data-action="\\infty">∞</button>
+        <button class="input-btn operator" data-action="\\partial">∂</button>
+        <button class="input-btn operator" data-action="e">e</button>
+        <button class="input-btn operator" data-action="\\exp">exp</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Trigonometry Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="trigBody">
+      <span>📊 Trigonometry</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="trigBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn operator" data-action="\\sin">sin</button>
+        <button class="input-btn operator" data-action="\\cos">cos</button>
+        <button class="input-btn operator" data-action="\\tan">tan</button>
+        <button class="input-btn operator" data-action="\\cot">cot</button>
+        <button class="input-btn operator" data-action="\\sec">sec</button>
+        <button class="input-btn operator" data-action="\\csc">csc</button>
+        <button class="input-btn operator" data-action="\\arcsin">asin</button>
+        <button class="input-btn operator" data-action="\\arccos">acos</button>
+        <button class="input-btn operator" data-action="\\arctan">atan</button>
+        <button class="input-btn operator" data-action="\\log">log</button>
+        <button class="input-btn operator" data-action="\\ln">ln</button>
+        <button class="input-btn symbol" data-action="\\pi">π</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Matrix Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="matrixBody">
+      <span>⬜ Matrix</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="matrixBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn special" data-action="[">[</button>
+        <button class="input-btn special" data-action="]">]</button>
+        <button class="input-btn special" data-action=",">,</button>
+        <button class="input-btn special" data-action="\\\\">\</button>
+        <button class="input-btn special" data-action="&">&</button>
+        <button class="input-btn operator" data-action="\\det">det</button>
+        <button class="input-btn special" data-action="^T">^T</button>
+        <button class="input-btn special" data-action="^{-1}">^-1</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Greek Letters Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="greekBody">
+      <span>🇬🇷 Greek Letters</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="greekBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn symbol" data-action="\\alpha">α</button>
+        <button class="input-btn symbol" data-action="\\beta">β</button>
+        <button class="input-btn symbol" data-action="\\gamma">γ</button>
+        <button class="input-btn symbol" data-action="\\delta">δ</button>
+        <button class="input-btn symbol" data-action="\\theta">θ</button>
+        <button class="input-btn symbol" data-action="\\lambda">λ</button>
+        <button class="input-btn symbol" data-action="\\sigma">σ</button>
+        <button class="input-btn symbol" data-action="\\phi">φ</button>
+        <button class="input-btn symbol" data-action="\\omega">ω</button>
+        <button class="input-btn symbol" data-action="\\mu">μ</button>
+        <button class="input-btn symbol" data-action="\\rho">ρ</button>
+        <button class="input-btn symbol" data-action="\\tau">τ</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Navigation & Controls Accordion -->
+  <div class="keyboard-accordion" style="margin-bottom:6px;">
+    <div class="keyboard-accordion-header" data-target="navBody">
+      <span>🎮 Navigation & Controls</span>
+      <span class="keyboard-accordion-icon">▼</span>
+    </div>
+    <div id="navBody" class="keyboard-accordion-body">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:8px;">
+        <button class="input-btn navigation" data-action="MOVE_LEFT">◄</button>
+        <button class="input-btn navigation" data-action="MOVE_RIGHT">►</button>
+        <button class="input-btn navigation" data-action="SELECT_LEFT">⇤</button>
+        <button class="input-btn navigation" data-action="SELECT_RIGHT">⇥</button>
+        <button class="input-btn delete" data-action="BACKSPACE" style="grid-column:span 2;">⌫ Back</button>
+        <button class="input-btn delete" data-action="CLEAR" style="grid-column:span 2;">Clear</button>
+      </div>
+    </div>
+  </div>
+        <!-- ✅ HISTORY AREA - THIS IS THE CRITICAL PART -->
+      <div id="freestyleHistory" style="margin-top:16px;min-height:20px;"></div>
+</div>
       <!-- Load Page -->
       <div id="loadPage" class="page">
         <div class="panel">
@@ -840,7 +1461,7 @@ class MathParser:
         return t.strip()
     
     def _show_error_popup(self, message):
-        """Display error popup with close button"""
+        """Display error popup with close button - optimized for mobile"""
         safe_msg = message.replace("`", "'").replace("\\", "\\\\").replace("\n", "\\n")
         js_code = f"""
             (function(){{
@@ -849,47 +1470,130 @@ class MathParser:
 
                 let popup = document.createElement('div');
                 popup.id = 'parseErrorPopup';
-                popup.style.cssText = `
-                    position:fixed;
-                    top:50%;
-                    left:50%;
-                    transform:translate(-50%, -50%);
-                    background:#f8fafc;
-                    color:#0f172a;
-                    font-family:monospace;
-                    padding:24px 24px 16px 24px;
-                    border:2px solid #ef4444;
-                    border-radius:12px;
-                    box-shadow:0 12px 40px rgba(0,0,0,0.2);
-                    white-space:pre;
-                    z-index:9999;
-                    max-width:650px;
-                    max-height:70vh;
-                    overflow:auto;
-                `;
+
+                // Detect if mobile/small screen
+                let isMobile = window.innerWidth <= 768;
+
+                if(isMobile) {{
+                    // Mobile styles - fullscreen-like
+                    popup.style.cssText = `
+                        position:fixed;
+                        top:0;
+                        left:0;
+                        right:0;
+                        bottom:0;
+                        background:#f8fafc;
+                        color:#0f172a;
+                        font-family:monospace;
+                        padding:60px 16px 16px 16px;
+                        border:none;
+                        border-radius:0;
+                        box-shadow:none;
+                        white-space:pre-wrap;
+                        z-index:9999;
+                        overflow:auto;
+                        -webkit-overflow-scrolling:touch;
+                    `;
+                }} else {{
+                    // Desktop styles - centered dialog
+                    popup.style.cssText = `
+                        position:fixed;
+                        top:50%;
+                        left:50%;
+                        transform:translate(-50%, -50%);
+                        background:#f8fafc;
+                        color:#0f172a;
+                        font-family:monospace;
+                        padding:24px 24px 16px 24px;
+                        border:2px solid #ef4444;
+                        border-radius:12px;
+                        box-shadow:0 12px 40px rgba(0,0,0,0.2);
+                        white-space:pre;
+                        z-index:9999;
+                        max-width:650px;
+                        max-height:70vh;
+                        overflow:auto;
+                    `;
+                }}
 
                 let btn = document.createElement('button');
                 btn.textContent = '✖';
                 btn.title = 'Close';
-                btn.style.cssText = `
-                    position:absolute;
-                    top:8px;
-                    right:10px;
-                    border:none;
-                    background:transparent;
-                    color:#ef4444;
-                    font-size:18px;
-                    font-weight:bold;
-                    cursor:pointer;
-                    line-height:1;
-                `;
+
+                if(isMobile) {{
+                    // Mobile close button - larger and top-left
+                    btn.style.cssText = `
+                        position:fixed;
+                        top:12px;
+                        right:12px;
+                        width:44px;
+                        height:44px;
+                        border:none;
+                        background:#ef4444;
+                        color:#fff;
+                        font-size:24px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        line-height:1;
+                        border-radius:8px;
+                        box-shadow:0 4px 12px rgba(239,68,68,0.4);
+                        z-index:10000;
+                    `;
+                }} else {{
+                    // Desktop close button - small and subtle
+                    btn.style.cssText = `
+                        position:absolute;
+                        top:8px;
+                        right:10px;
+                        border:none;
+                        background:transparent;
+                        color:#ef4444;
+                        font-size:18px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        line-height:1;
+                    `;
+                }}
                 btn.onclick = () => popup.remove();
+
+                let title = document.createElement('div');
+                title.textContent = '⚠️ Parse Error';
+
+                if(isMobile) {{
+                    title.style.cssText = `
+                        font-size:22px;
+                        font-weight:bold;
+                        color:#ef4444;
+                        margin-bottom:16px;
+                        padding-right:50px;
+                    `;
+                }} else {{
+                    title.style.cssText = `
+                        font-size:18px;
+                        font-weight:bold;
+                        color:#ef4444;
+                        margin-bottom:12px;
+                    `;
+                }}
 
                 let content = document.createElement('div');
                 content.textContent = `{safe_msg}`;
-                content.style.paddingTop = '8px';
+
+                if(isMobile) {{
+                    content.style.cssText = `
+                        font-size:14px;
+                        line-height:1.6;
+                        word-break:break-word;
+                        padding-top:8px;
+                    `;
+                }} else {{
+                    content.style.cssText = `
+                        padding-top:8px;
+                    `;
+                }}
 
                 popup.appendChild(btn);
+                popup.appendChild(title);
                 popup.appendChild(content);
                 document.body.appendChild(popup);
             }})();
@@ -1037,6 +1741,615 @@ class MathParser:
             except:
                 return False
 class ProblemSolverApp:
+    def toggle_keyboard_accordion(self, target_id):
+        """Toggle keyboard accordion, move to top, and disable/enable MathQuill textarea"""
+        target_body = document.querySelector(f"#{target_id}")
+        if not target_body:
+            return
+
+        # Prefer closest keyboard-accordion ancestor (more robust than parentElement)
+        accordion = target_body.closest(".keyboard-accordion") or target_body.parentElement
+        if not accordion:
+            return
+
+        # Find the keyboard container (prefer explicit container id, fallback to parent)
+        keyboard_container = document.querySelector("#keyboardAccordionsContainer") or accordion.parentElement
+
+        # Check if currently open
+        is_open = accordion.classList.contains("open")
+
+        # Determine which field to affect (problem input or answer input)
+        current_field = None
+        if getattr(self, "freestyle_problem", False):
+            # Problem is set, use answer field
+            current_field = getattr(self, "freestyle_answer_mf", None)
+        else:
+            # No problem yet, use problem input field
+            current_field = getattr(self, "freestyle_problem_mf", None)
+
+        if is_open:
+            # Close this accordion
+            accordion.classList.remove("open")
+
+            # Re-enable MathQuill textarea when accordion closes
+            if current_field:
+                try:
+                    el = current_field.el()
+                    textarea = el.querySelector('textarea')
+                    if textarea:
+                        textarea.removeAttribute('readonly')
+                        textarea.removeAttribute('disabled')
+                        textarea.style.pointerEvents = 'auto'
+                        textarea.style.opacity = '1'
+                        window.console.log("✅ MathQuill textarea enabled")
+                except Exception as e:
+                    window.console.error(f"Failed to enable textarea: {e}")
+        else:
+            # Close all other accordions first
+            all_accordions = document.querySelectorAll(".keyboard-accordion")
+            for i in range(all_accordions.length):
+                all_accordions[i].classList.remove("open")
+
+            # Open this accordion
+            accordion.classList.add("open")
+
+            # Move this accordion to the top of the accordion stack:
+            # — find the first existing .keyboard-accordion child (ignore labels/header nodes),
+            # — insert before it, unless it's already the first one.
+            try:
+                if keyboard_container:
+                    first_accordion = keyboard_container.querySelector('.keyboard-accordion')
+                    # If there's a first accordion and it's not this one, insert before it.
+                    if first_accordion and first_accordion != accordion:
+                        keyboard_container.insertBefore(accordion, first_accordion)
+                        window.console.log("✅ Accordion moved to top (inserted before first .keyboard-accordion)")
+                    else:
+                        # If no .keyboard-accordion exists, append as the first accordion child
+                        if not first_accordion:
+                            keyboard_container.appendChild(accordion)
+                            window.console.log("✅ Accordion appended (no existing .keyboard-accordion found)")
+                        else:
+                            # first_accordion == accordion -> it's already at top, do nothing
+                            window.console.log("ℹ️ Accordion is already at top")
+            except Exception as e:
+                window.console.error(f"Failed to move accordion: {e}")
+
+            # Disable MathQuill textarea when accordion opens
+            if current_field:
+                try:
+                    el = current_field.el()
+                    textarea = el.querySelector('textarea')
+                    if textarea:
+                        textarea.setAttribute('readonly', 'readonly')
+                        textarea.setAttribute('disabled', 'disabled')
+                        textarea.style.pointerEvents = 'none'
+                        textarea.style.opacity = '0.7'
+                        window.console.log("✅ MathQuill textarea disabled")
+                except Exception as e:
+                    window.console.error(f"Failed to disable textarea: {e}")
+
+    def init_freestyle_page(self):
+        """Initialize the freestyle problem page with MathQuill fields"""
+        if not self.MQ:
+            return
+
+        # Initialize MathQuill fields
+        problem_input = document.querySelector("#freestyleProblemInput")
+        answer_input = document.querySelector("#freestyleAnswerInput")
+
+        if problem_input:
+            self.freestyle_problem_mf = self.MQ.MathField(problem_input)
+
+        if answer_input:
+            self.freestyle_answer_mf = self.MQ.MathField(answer_input)
+
+        # Setup accordion toggles for all keyboard sections
+        accordion_headers = document.querySelectorAll(".keyboard-accordion-header")
+        for i in range(accordion_headers.length):
+            header = accordion_headers[i]
+            target_id = header.getAttribute("data-target")
+
+            def make_accordion_handler(target):
+                def handler(e):
+                    self.toggle_keyboard_accordion(target)
+                return handler
+
+            header.addEventListener("click", create_proxy(make_accordion_handler(target_id)))
+
+        # Setup event listeners for freestyle page
+        set_btn = document.querySelector("#setFreestyleProblem")
+        if set_btn:
+            set_btn.addEventListener("click", create_proxy(lambda e: self.set_freestyle_problem(e)))
+
+        submit_btn = document.querySelector("#freestyleSubmit")
+        if submit_btn:
+            submit_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_submit(e)))
+
+        finalize_btn = document.querySelector("#freestyleFinalize")
+        if finalize_btn:
+            finalize_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_finalize(e)))
+
+        reset_btn = document.querySelector("#freestyleReset")
+        if reset_btn:
+            reset_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_reset(e)))
+
+        # Setup keyboard buttons
+        keyboard_btns = document.querySelectorAll(".keyboard-accordion-body .input-btn")
+        for i in range(keyboard_btns.length):
+            btn = keyboard_btns[i]
+            action = btn.getAttribute("data-action")
+
+            def make_keyboard_handler(act):
+                def handler(e):
+                    self.handle_freestyle_input(act)
+                return handler
+
+            btn.addEventListener("click", create_proxy(make_keyboard_handler(action)))
+            
+    def handle_freestyle_input(self, action):
+        """Handle keyboard input for freestyle fields (problem or answer)"""
+        # Determine which field to use
+        if self.freestyle_problem:
+            # Problem is set, input goes to answer
+            target_field = self.freestyle_answer_mf
+        else:
+            # No problem yet, input goes to problem input
+            target_field = self.freestyle_problem_mf
+
+        if not target_field:
+            window.console.error("No target field available")
+            return
+
+        if action == "BACKSPACE":
+            target_field.keystroke("Backspace")
+        elif action == "CLEAR":
+            target_field.latex("")
+        elif action == "MOVE_LEFT":
+            target_field.keystroke("Left")
+        elif action == "MOVE_RIGHT":
+            target_field.keystroke("Right")
+        elif action == "SELECT_LEFT":
+            target_field.keystroke("Shift-Left")
+        elif action == "SELECT_RIGHT":
+            target_field.keystroke("Shift-Right")
+        elif action == "^":
+            target_field.cmd("^")
+        elif action == "_":
+            target_field.cmd("_")
+        elif action.startswith("SEQ:"):
+            sequence = action[4:]
+            keys = sequence.split(",")
+            for key in keys:
+                key = key.strip()
+                if key == "/":
+                    target_field.cmd("/")
+                elif key.startswith("\\"):
+                    target_field.cmd(key)
+                else:
+                    target_field.write(key)
+        else:
+            if action.startswith("\\"):
+                target_field.cmd(action)
+            else:
+                target_field.write(action)
+
+    def set_freestyle_problem(self, event):
+        """Set the freestyle problem from user input and create solve area dynamically"""
+        window.console.log("=== set_freestyle_problem called ===")
+
+        if not self.freestyle_problem_mf:
+            window.alert("⚠️ Problem input not ready")
+            return
+
+        problem_latex = self.freestyle_problem_mf.latex().strip()
+        window.console.log(f"Problem latex: {problem_latex}")
+
+        if not problem_latex:
+            window.alert("⚠️ Please enter a problem first")
+            return
+
+        # Parse the problem to validate it
+        try:
+            window.console.log("Parsing problem...")
+            parsed = self.math_parser.parse(problem_latex)
+            window.console.log(f"Parsed: {parsed}")
+
+            if not parsed:
+                window.alert("⚠️ Could not parse the problem. Please check your input.")
+                return
+        except Exception as e:
+            window.console.error(f"Parse error: {e}")
+            window.alert(f"⚠️ Parse error: {e}")
+            return
+
+        # Normalize and extract structure
+        try:
+            window.console.log("Normalizing and extracting structure...")
+            normalized = self.math_parser.normalize(parsed)
+            structure = self.math_parser.extract_structure(parsed)
+            window.console.log(f"Normalized: {normalized}")
+            window.console.log(f"Structure: {structure}")
+
+            # Store the problem
+            self.freestyle_problem = {
+                "latex": problem_latex,
+                "parsed": parsed,
+                "normalized": normalized,
+                "structure": structure
+            }
+            window.console.log("✅ Problem stored successfully")
+
+        except Exception as e:
+            window.console.error(f"Error processing problem: {e}")
+            window.alert(f"⚠️ Error: {e}")
+            return
+
+        # Reset state
+        self.freestyle_attempts = []
+        self.freestyle_correct = False
+        self.freestyle_finalized = False
+
+        if self.freestyle_answer_mf:
+            self.freestyle_answer_mf.latex("")
+
+        # Create or update solve area dynamically
+        try:
+            # Check if solve area already exists
+            solve_area = document.querySelector("#freestyleSolveArea")
+            keyboard_container = document.querySelector("#keyboardAccordionsContainer")
+
+            if not solve_area:
+                # Create solve area if it doesn't exist
+                solve_area = document.createElement("div")
+                solve_area.id = "freestyleSolveArea"
+                solve_area.innerHTML = """
+                <hr style='margin:20px 0;border:none;border-top:2px solid #e5e7eb;'>
+
+                <div style='background:#f0fdf4;padding:16px;border-radius:8px;margin-bottom:16px;'>
+                  <div style='font-weight:700;margin-bottom:8px;'>Problem to Solve:</div>
+                  <div id='freestyleProblemDisplay' style='font-size:20px;overflow-x:auto;'></div>
+                </div>
+
+                <div style='margin-bottom:20px;'>
+                  <label>🎯 Your Solution</label>
+                  <div style='overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:2px solid #e6eef8;border-radius:8px;padding:10px;background:#fff;'>
+                    <div id='freestyleAnswerInput' class='math-input' style='min-height:60px;border:none;padding:0;'></div>
+                  </div>
+
+                  <div style='display:flex;flex-direction:column;gap:8px;margin-top:16px;'>
+                    <button id='freestyleSubmit' class='btn'>Submit Attempt</button>
+                    <button id='freestyleFinalize' class='btn ghost' disabled>Finalize Solution</button>
+                    <button id='freestyleReset' class='btn ghost' style='background:#dc2626;color:#fff;'>Reset Problem</button>
+                  </div>
+                </div>
+
+                <div id='freestyleFeedback' style='margin-top:16px;min-height:20px;'></div>
+                <div id='freestyleHistory' style='margin-top:16px;min-height:20px;'></div>
+                """
+
+            # Insert solve area BEFORE keyboard
+            if keyboard_container:
+                keyboard_parent = keyboard_container.parentElement
+                if keyboard_parent:
+                    # Check if solve area is already in the right position
+                    if solve_area.nextElementSibling != keyboard_container:
+                        keyboard_parent.insertBefore(solve_area, keyboard_container)
+                        window.console.log("✅ Solve area positioned above keyboard")
+
+            # Show solve area
+            solve_area.style.display = "block"
+
+            # Re-initialize MathQuill answer field if needed
+            answer_input = document.querySelector("#freestyleAnswerInput")
+            if answer_input and not self.freestyle_answer_mf:
+                if self.MQ:
+                    self.freestyle_answer_mf = self.MQ.MathField(answer_input)
+                    window.console.log("✅ Answer MathQuill field initialized")
+
+            # Re-attach button event listeners
+            submit_btn = document.querySelector("#freestyleSubmit")
+            if submit_btn:
+                # Remove old listener if exists, then add new
+                submit_btn.replaceWith(submit_btn.cloneNode(True))
+                submit_btn = document.querySelector("#freestyleSubmit")
+                submit_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_submit(e)))
+
+            finalize_btn = document.querySelector("#freestyleFinalize")
+            if finalize_btn:
+                finalize_btn.replaceWith(finalize_btn.cloneNode(True))
+                finalize_btn = document.querySelector("#freestyleFinalize")
+                finalize_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_finalize(e)))
+                finalize_btn.disabled = True
+
+            reset_btn = document.querySelector("#freestyleReset")
+            if reset_btn:
+                reset_btn.replaceWith(reset_btn.cloneNode(True))
+                reset_btn = document.querySelector("#freestyleReset")
+                reset_btn.addEventListener("click", create_proxy(lambda e: self.freestyle_reset(e)))
+
+            # Update problem display
+            problem_display = document.querySelector("#freestyleProblemDisplay")
+            if problem_display:
+                problem_display.innerHTML = f"\\({problem_latex}\\)"
+                # Render MathJax
+                if hasattr(window, 'MathJax'):
+                    window.MathJax.typesetPromise([problem_display])
+
+            # Clear feedback and history
+            feedback = document.querySelector("#freestyleFeedback")
+            if feedback:
+                feedback.innerHTML = ""
+
+            history = document.querySelector("#freestyleHistory")
+            if history:
+                history.innerHTML = ""
+
+            window.console.log("✅ UI updated successfully")
+            window.alert("✅ Problem set! Now solve it.")
+
+        except Exception as e:
+            window.console.error(f"Error updating UI: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
+            window.alert(f"⚠️ Error updating display: {e}")
+
+    def freestyle_submit(self, event):
+        """Submit a solution attempt for the freestyle problem"""
+        window.console.log("=== freestyle_submit called ===")
+
+        if not self.freestyle_problem:
+            window.alert("⚠️ Set a problem first")
+            return
+
+        if not self.freestyle_answer_mf:
+            window.alert("⚠️ Answer input not ready")
+            return
+
+        user_latex = self.freestyle_answer_mf.latex().strip()
+        window.console.log(f"User latex: {user_latex}")
+
+        if not user_latex:
+            window.alert("⚠️ Enter an answer first")
+            return
+
+        # Parse user answer
+        try:
+            window.console.log("Parsing user answer...")
+            parsed_user = self.math_parser.parse(user_latex)
+            window.console.log(f"Parsed user: {parsed_user}")
+
+            if not parsed_user:
+                self.show_freestyle_feedback("⚠️ Could not parse your answer. Please check your syntax.", "#b91c1c")
+                return
+        except Exception as e:
+            window.console.error(f"Parse error: {e}")
+            self.show_freestyle_feedback(f"⚠️ Parse error: {e}", "#b91c1c")
+            return
+
+        # Get problem data
+        try:
+            window.console.log("Getting problem data...")
+            problem_normalized = self.freestyle_problem["normalized"]
+            window.console.log(f"Problem normalized: {problem_normalized}")
+        except Exception as e:
+            window.console.error(f"Error getting problem data: {e}")
+            self.show_freestyle_feedback(f"⚠️ Error: Problem data invalid", "#b91c1c")
+            return
+
+        # Normalize user answer
+        try:
+            window.console.log("Normalizing user answer...")
+            user_normalized = self.math_parser.normalize(parsed_user)
+            window.console.log(f"User normalized: {user_normalized}")
+        except Exception as e:
+            window.console.error(f"Normalization error: {e}")
+            self.show_freestyle_feedback(f"⚠️ Error normalizing answer: {e}", "#b91c1c")
+            return
+
+        # Compare answers
+        try:
+            window.console.log("Comparing answers...")
+            correct = self.math_parser.compare(problem_normalized, user_normalized)
+            window.console.log(f"Correct: {correct}")
+        except Exception as e:
+            window.console.error(f"Comparison error: {e}")
+            self.show_freestyle_feedback(f"⚠️ Error comparing answers: {e}", "#b91c1c")
+            return
+
+        # Record attempt
+        try:
+            attempt = {
+                "attempt_number": len(self.freestyle_attempts) + 1,
+                "answer_latex": user_latex,
+                "correct": correct,
+                "timestamp": window.Date.now()
+            }
+            self.freestyle_attempts.append(attempt)
+            window.console.log(f"Attempt recorded: {attempt}")
+        except Exception as e:
+            window.console.error(f"Error recording attempt: {e}")
+
+        # Update UI
+        try:
+            if correct:
+                self.freestyle_correct = True
+                self.show_freestyle_feedback(
+                    "✅ Correct! Your answer equals the problem.<br>"
+                    "Click <strong>Finalize</strong> to verify your solution method.",
+                    "#059669"
+                )
+                finalize_btn = document.querySelector("#freestyleFinalize")
+                if finalize_btn:
+                    finalize_btn.disabled = False
+                    window.console.log("Finalize button enabled")
+            else:
+                self.show_freestyle_feedback("❌ Incorrect. Try again!", "#b91c1c")
+
+            # Add to history
+            self.add_freestyle_attempt_to_history(user_latex, correct)
+            window.console.log("✅ Submit completed successfully")
+
+        except Exception as e:
+            window.console.error(f"Error updating UI: {e}")
+            self.show_freestyle_feedback(f"⚠️ Error updating display: {e}", "#b91c1c")
+
+    def freestyle_finalize(self, event):
+        """Finalize the freestyle solution and compare structure"""
+        if not self.freestyle_correct:
+            window.alert("⚠️ Submit a correct answer first")
+            return
+
+        if not self.freestyle_answer_mf:
+            return
+
+        user_latex = self.freestyle_answer_mf.latex().strip()
+        parsed_user = self.math_parser.parse(user_latex)
+
+        if not parsed_user:
+            window.alert("⚠️ Could not parse your answer")
+            return
+
+        # Extract structures
+        user_struct = self.math_parser.extract_structure(parsed_user)
+        problem_struct = self.freestyle_problem["structure"]
+
+        # Compare structures
+        same_operators = user_struct["operators"] == problem_struct["operators"]
+        same_operands = user_struct["operands"] == problem_struct["operands"]
+        same_structure = same_operators and same_operands
+
+        # Compute simplest form
+        try:
+            import sympy as sp
+            problem_parsed = self.freestyle_problem["parsed"]
+            simplest = sp.simplify(problem_parsed)
+            simplest_latex = sp.latex(simplest)
+            simplest_struct = self.math_parser.extract_structure(simplest)
+        except:
+            simplest_latex = None
+            simplest_struct = None
+
+        # Build feedback
+        if same_structure:
+            msg = "✅ Perfect! Your solution method matches the original problem structure."
+            color = "#059669"
+        else:
+            msg = f"""
+            ⚠️ Different structure detected.<br><br>
+            <strong>Your structure:</strong><br>
+            Operations: {user_struct.get('operators', {})}<br>
+            Values: {user_struct.get('operands', {})}<br><br>
+            <strong>Original problem structure:</strong><br>
+            Operations: {problem_struct.get('operators', {})}<br>
+            Values: {problem_struct.get('operands', {})}
+            """
+            color = "#f59e0b"
+
+        if simplest_latex and simplest_struct:
+            same_as_simplest_ops = user_struct["operators"] == simplest_struct["operators"]
+            same_as_simplest_vals = user_struct["operands"] == simplest_struct["operands"]
+            same_as_simplest = same_as_simplest_ops and same_as_simplest_vals
+
+            msg += f"""<br><br>
+            <strong>Simplest form:</strong> \\({simplest_latex}\\)<br>
+            <strong>Simplest structure:</strong><br>
+            Operations: {simplest_struct.get('operators', {})}<br>
+            Values: {simplest_struct.get('operands', {})}
+            """
+
+            if same_as_simplest:
+                msg += "<br><br>🎯 <strong>Your solution matches the simplest form!</strong>"
+                color = "#059669"
+
+        self.freestyle_finalized = True
+        self.show_freestyle_feedback(msg, color)
+
+        # Disable buttons
+        finalize_btn = document.querySelector("#freestyleFinalize")
+        if finalize_btn:
+            finalize_btn.disabled = True
+
+        submit_btn = document.querySelector("#freestyleSubmit")
+        if submit_btn:
+            submit_btn.disabled = True
+
+        # Re-render MathJax
+        feedback = document.querySelector("#freestyleFeedback")
+        if feedback and hasattr(window, 'MathJax'):
+            window.MathJax.typesetPromise([feedback])
+
+    def freestyle_reset(self, event):
+        """Reset the freestyle problem"""
+        if not window.confirm("Reset freestyle problem? This will clear your progress."):
+            return
+
+        self.freestyle_problem = None
+        self.freestyle_attempts = []
+        self.freestyle_correct = False
+        self.freestyle_finalized = False
+
+        if self.freestyle_problem_mf:
+            self.freestyle_problem_mf.latex("")
+
+        if self.freestyle_answer_mf:
+            self.freestyle_answer_mf.latex("")
+
+        solve_area = document.querySelector("#freestyleSolveArea")
+        if solve_area:
+            solve_area.style.display = "none"
+
+        feedback = document.querySelector("#freestyleFeedback")
+        if feedback:
+            feedback.innerHTML = ""
+
+        history = document.querySelector("#freestyleHistory")
+        if history:
+            history.innerHTML = ""
+
+        submit_btn = document.querySelector("#freestyleSubmit")
+        if submit_btn:
+            submit_btn.disabled = False
+
+        finalize_btn = document.querySelector("#freestyleFinalize")
+        if finalize_btn:
+            finalize_btn.disabled = True
+
+        window.alert("✅ Freestyle problem reset")
+
+    def show_freestyle_feedback(self, message, color):
+        """Show feedback for freestyle problem"""
+        feedback = document.querySelector("#freestyleFeedback")
+        if feedback:
+            feedback.innerHTML = f"<div style='color:{color};background:{color}20;padding:14px;border-radius:8px;border:2px solid {color};'>{message}</div>"
+
+    def add_freestyle_attempt_to_history(self, latex, correct):
+        """Add attempt to freestyle history display"""
+        history = document.querySelector("#freestyleHistory")
+        if not history:
+            return
+
+        if history.innerHTML == "":
+            history.innerHTML = "<div style='font-weight:700;margin-bottom:10px;font-size:16px;'>Attempt History:</div>"
+
+        entry = document.createElement("div")
+        entry.style.cssText = "margin-bottom:10px;padding:12px;border-radius:8px;"
+        entry.style.background = "#dcfce7" if correct else "#fee2e2"
+        entry.style.border = f"2px solid {'#86efac' if correct else '#fecaca'}"
+
+        entry.innerHTML = f"""
+        <div style='font-weight:700;font-size:15px;'>
+            📝 Attempt #{len(self.freestyle_attempts)} - {'✅ Correct' if correct else '❌ Incorrect'}
+        </div>
+        <div style='margin-top:8px;padding:10px;background:#fff;border-radius:6px;'>
+            \\({latex}\\)
+        </div>
+        """
+
+        history.appendChild(entry)
+
+        # Render MathJax
+        if hasattr(window, 'MathJax'):
+            window.MathJax.typesetPromise([entry])
     def __init__(self):
         self.problem_set = []
         self.problem_states = {}
@@ -1045,6 +2358,13 @@ class ProblemSolverApp:
         self.math_parser = MathParser()
         self.MQ = None
         self.current_page = "problems"
+        # Freestyle problem state
+        self.freestyle_problem = None
+        self.freestyle_problem_mf = None
+        self.freestyle_answer_mf = None
+        self.freestyle_attempts = []
+        self.freestyle_correct = False
+        self.freestyle_finalized = False
         # Import re at class level
         import re
         self.re = re
@@ -1057,6 +2377,9 @@ class ProblemSolverApp:
         # Setup event listeners
         self.setup_events()
         
+        # Initialize freestyle page
+        self.init_freestyle_page()
+
         # Load saved data
         self.load_from_storage()
         
@@ -1211,6 +2534,96 @@ class ProblemSolverApp:
             reader.onload = create_proxy(on_load)
             reader.readAsText(file)
     
+    def get_select_left_svg(self, size="24", stroke_width=2, color="currentColor"):
+        """
+        SVG: box followed by a left-pointing arrow (select left).
+        Box on the left, arrow to the right pointing back toward the box.
+        """
+        return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <!-- box -->
+          <rect x="3" y="6" width="8" height="12" rx="2" stroke="{color}" stroke-width="{stroke_width}" fill="none"/>
+          <!-- arrow (to the left, pointing at the box) -->
+          <path d="M21 12 H11" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M15 8 L11 12 L15 16" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>"""
+
+    def get_select_right_svg(self, size="24", stroke_width=2, color="currentColor"):
+        """
+        SVG: right-pointing arrow followed by a box (select right).
+        Arrow on the left pointing toward the box on the right.
+        """
+        return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <!-- arrow (to the right, pointing at the box) -->
+          <path d="M3 12 H13" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M9 8 L13 12 L9 16" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <!-- box -->
+          <rect x="13.5" y="6" width="7" height="12" rx="2" stroke="{color}" stroke-width="{stroke_width}" fill="none"/>
+        </svg>"""
+
+    def get_move_left_svg(self, size="24", stroke_width=2, color="currentColor"):
+        """
+        SVG: left-pointing arrow (move left).
+        """
+        return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <!-- arrow (to the left, pointing at the box) -->
+          <path d="M21 12 H11" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M15 8 L11 12 L15 16" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>"""
+
+    def get_move_right_svg(self, size="24", stroke_width=2, color="currentColor"):
+        """
+        SVG: right-pointing arrow (move right).
+        """
+        return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <!-- arrow (to the right, pointing at the box) -->
+          <path d="M3 12 H13" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M9 8 L13 12 L9 16" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>"""
+      
+                              
+    def get_keyboard_svg(self, size="24"):
+      """Generate SVG keyboard icon"""
+      return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+          <rect x="5" y="8" width="2" height="2" fill="currentColor"/>
+          <rect x="9" y="8" width="2" height="2" fill="currentColor"/>
+          <rect x="13" y="8" width="2" height="2" fill="currentColor"/>
+          <rect x="17" y="8" width="2" height="2" fill="currentColor"/>
+          <rect x="5" y="12" width="2" height="2" fill="currentColor"/>
+          <rect x="9" y="12" width="2" height="2" fill="currentColor"/>
+          <rect x="13" y="12" width="2" height="2" fill="currentColor"/>
+          <rect x="17" y="12" width="2" height="2" fill="currentColor"/>
+          <rect x="7" y="16" width="10" height="2" rx="1" fill="currentColor"/>
+      </svg>"""
+
+    def get_lock_svg(self, size="24"):
+      """Generate SVG keyboard icon with cross mark on top"""
+      return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <!-- Keyboard outline -->
+        <rect x="2" y="5" width="20" height="14" rx="2"
+              stroke="currentColor" stroke-width="2"/>
+        <rect x="5" y="8" width="2" height="2" fill="currentColor"/>
+        <rect x="9" y="8" width="2" height="2" fill="currentColor"/>
+        <rect x="13" y="8" width="2" height="2" fill="currentColor"/>
+        <rect x="17" y="8" width="2" height="2" fill="currentColor"/>
+        <rect x="5" y="12" width="2" height="2" fill="currentColor"/>
+        <rect x="9" y="12" width="2" height="2" fill="currentColor"/>
+        <rect x="13" y="12" width="2" height="2" fill="currentColor"/>
+        <rect x="17" y="12" width="2" height="2" fill="currentColor"/>
+        <rect x="7" y="16" width="10" height="2" rx="1" fill="currentColor"/>
+
+        <!-- Large red cross centered -->
+        <line x1="6" y1="6" x2="18" y2="18"
+              stroke="red" stroke-width="3" stroke-linecap="round"/>
+        <line x1="18" y1="6" x2="6" y2="18"
+              stroke="red" stroke-width="3" stroke-linecap="round"/>
+    </svg>"""
+
     def generate_minimal_buttons(self, step_data):
         """Generate minimal button set based on expression and expected structure"""
         
@@ -1284,7 +2697,6 @@ class ProblemSolverApp:
         operator_map = {
             "Add": ("+", "+"),
             "Mul": ("×", "\\times"),
-            "Pow": ("^", "^"),
             "Derivative": ("d/dx", "SEQ:d,/,d,x"),
             "sin": ("sin", "\\sin"),
             "cos": ("cos", "\\cos"),
@@ -1372,18 +2784,26 @@ class ProblemSolverApp:
             buttons.add(("special", "÷", "\\frac"))
         
         # Add navigation buttons for MathQuill field
-        buttons.add(("navigation", "◄", "MOVE_LEFT"))
-        buttons.add(("navigation", "►", "MOVE_RIGHT"))
-        buttons.add(("navigation", "⇤", "SELECT_LEFT"))
-        buttons.add(("navigation", "⇥", "SELECT_RIGHT"))
+        move_left_svg = self.get_move_left_svg("32")
+        move_right_svg = self.get_move_right_svg("32")
+        buttons.add(("navigation", f"MOVE_LEFT_SVG:{move_left_svg}", "MOVE_LEFT"))
+        buttons.add(("navigation", f"MOVE_RIGHT_SVG:{move_right_svg}", "MOVE_RIGHT"))                              
+        #buttons.add(("navigation", "◄", "MOVE_LEFT"))
+        #buttons.add(("navigation", "►", "MOVE_RIGHT"))
+        select_left_svg = self.get_select_left_svg("32")
+        select_right_svg = self.get_select_right_svg("32")
+        buttons.add(("navigation", f"SELECT_LEFT_SVG:{select_left_svg}", "SELECT_LEFT"))
+        buttons.add(("navigation", f"SELECT_RIGHT_SVG:{select_right_svg}", "SELECT_RIGHT"))                              
+        #buttons.add(("navigation", "⇤", "SELECT_LEFT"))
+        #buttons.add(("navigation", "⇥", "SELECT_LEFT"))
 
         
         # Always add backspace and clear
         buttons.add(("delete", "⌫", "BACKSPACE"))
         buttons.add(("delete", "Clear", "CLEAR"))
         # Add keyboard activation button
-        buttons.add(("navigation", "⌨️", "ACTIVATE_KEYBOARD"))
-        buttons.add(("navigation", "🔒", "DEACTIVATE_KEYBOARD"))
+        #buttons.add(("navigation", "⌨️", "ACTIVATE_KEYBOARD"))
+        #buttons.add(("navigation", "🔒", "DEACTIVATE_KEYBOARD"))
         
         # Sort buttons by type and label
         sorted_buttons = sorted(buttons, key=lambda x: (
@@ -1396,15 +2816,42 @@ class ProblemSolverApp:
             x[1]
         ))
         
+        #html_parts = []
+        #for btn_type, label, action in sorted_buttons:
+        #    safe_label = html.escape(label)
+        #    html_parts.append(
+        #        f"<button class='input-btn {btn_type}' data-action='{action}'>{safe_label}</button>"
+        #    )
         html_parts = []
         for btn_type, label, action in sorted_buttons:
-            safe_label = html.escape(label)
-            html_parts.append(
-                f"<button class='input-btn {btn_type}' data-action='{action}'>{safe_label}</button>"
-            )
-        
+            # Check if this is an SVG button
+            if label.startswith("SELECT_LEFT_SVG:"):
+                svg_content = label.replace("SELECT_LEFT_SVG:", "")
+                html_parts.append(
+                    f"<button class='input-btn {btn_type}' data-action='{action}' >{svg_content}</button>"
+                )
+            elif label.startswith("SELECT_RIGHT_SVG:"):
+                svg_content = label.replace("SELECT_RIGHT_SVG:", "")
+                html_parts.append(
+                    f"<button class='input-btn {btn_type}' data-action='{action}'>{svg_content}</button>"
+                )
+            elif label.startswith("MOVE_LEFT_SVG:"):
+                svg_content = label.replace("MOVE_LEFT_SVG:", "")
+                html_parts.append(
+                    f"<button class='input-btn {btn_type}' data-action='{action}'>{svg_content}</button>"
+                )
+            elif label.startswith("MOVE_RIGHT_SVG:"):
+                svg_content = label.replace("MOVE_RIGHT_SVG:", "")
+                html_parts.append(
+                    f"<button class='input-btn {btn_type}' data-action='{action}'>{svg_content}</button>"
+                )            
+            else:
+                safe_label = html.escape(label)
+                html_parts.append(
+                    f"<button class='input-btn {btn_type}' data-action='{action}'>{safe_label}</button>"
+                )
+
         return "\n".join(html_parts)
-    
     def _is_numeric(self, s):
         """Check if string represents a number"""
         try:
@@ -1502,6 +2949,8 @@ class ProblemSolverApp:
                     answer_field.cmd("/")
                 elif key.startswith("\\"):
                     answer_field.cmd(key)
+                elif key.startswith("~"):
+                    answer_field.keystroke(key.replace("~",""))
                 else:
                     answer_field.write(key)
         else:
@@ -2025,22 +3474,28 @@ class ProblemSolverApp:
             
             # ⭐ GENERATE MINIMAL BUTTONS
             button_html = self.generate_minimal_buttons(step_data)
-            
+        
+            # Generate SVG icons for keyboard buttons
+            keyboard_svg = self.get_keyboard_svg("32")
+            lock_svg = self.get_lock_svg("32")
+
             step_div.innerHTML = f"""
-            <div style='font-weight:700;margin-bottom:10px;'>Step {step_idx+1} of {len(steps)}</div>
+            <div style='font-weight:700;margin-bottom:6px;'>Step {step_idx+1} of {len(steps)}</div>
             <div class='step-description'>{desc_html}</div>
-            <div style='margin-top:14px;'>
-              <div style='font-weight:700;margin-bottom:8px;'>Your Answer:</div>
-              <div class='math-input step-answer'></div>
-              <div style='margin-top:14px;'>
-                <div style='font-weight:600;margin-bottom:8px;font-size:14px;'>Input Buttons:</div>
-                <div class='button-grid' style='display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px;margin-bottom:12px;'>
-                  <button class='input-btn navigation' data-action='ACTIVATE_KEYBOARD'>⌨️</button>
-                  <button class='input-btn navigation' data-action='DEACTIVATE_KEYBOARD'>🔒</button>
+            <div style='margin-top:8px;'>
+              <div style='font-weight:700;margin-bottom:4px;'>Your Answer:</div>
+              <div style='overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:2px solid #e6eef8;border-radius:8px;padding:10px;background:#fff;'>
+                <div class='math-input step-answer'></div>
+              </div>
+              <div style='margin-top:8px;'>
+                <div style='font-weight:600;margin-bottom:4px;font-size:13px;'>Input Buttons:</div>
+                <div class='button-grid' style='display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin:0;padding:0;'>
+                  <button class='input-btn keyboard-activate' data-action='ACTIVATE_KEYBOARD' title='Activate Keyboard' style='grid-column:span 2;'>{keyboard_svg}<span style='font-size:11px;margin-top:2px;'>Keyboard</span></button>
+                  <button class='input-btn keyboard-lock' data-action='DEACTIVATE_KEYBOARD' title='Lock Keyboard' style='grid-column:span 2;'>{lock_svg}<span style='font-size:11px;margin-top:2px;'>Lock</span></button>
                   {button_html}
                 </div>
               </div>
-              <div style='display:flex;flex-direction:column;gap:8px;margin-top:10px;'>
+              <div style='display:flex;flex-direction:column;gap:6px;margin-top:8px;'>
                 <button class='btn submitAnswer'>Submit Answer</button>
                 <button class='btn ghost finalizeStep' disabled>Finalize Step</button>
                 <button class='btn nextStep' style='display:none;background:#10b981;'>Next Step →</button>
@@ -2048,8 +3503,7 @@ class ProblemSolverApp:
             </div>
             <div class='step-feedback'></div>
             <div class='attempts-history' style='display:none;'></div>
-            """
-            
+            """            
             container.appendChild(step_div)
             
             # Initialize MathQuill
@@ -2120,13 +3574,15 @@ class ProblemSolverApp:
             for btn_idx in range(input_btns.length):
                 btn = input_btns[btn_idx]
                 action = btn.getAttribute("data-action")
-                
-                def make_input_handler(s_idx, act, ans_field):
+
+                # FIX: Create closure with step_idx only, don't pass answer_field
+                def make_input_handler(s_idx, act):
                     def handler(e):
-                        self.handle_input_button(s_idx, act, ans_field)
+                        # Pass step_idx and action, the method will get the field from solve_state
+                        self.handle_input_button(s_idx, act, None)  # Pass None for answer_field
                     return handler
-                
-                btn.addEventListener("click", create_proxy(make_input_handler(step_idx, action, answer_field)))
+
+                btn.addEventListener("click", create_proxy(make_input_handler(step_idx, action)))
         
         # Show first unfinished step
         for i, step in enumerate(self.solve_state):

@@ -32,6 +32,112 @@
   </script>
 
   <style>
+/* Target the MathQuill editable container */
+.mq-editable-field {
+  /* Base “outer” border style */
+  border: 2px solid #007bff !important;
+  border-radius: 4px !important;
+  position: relative; /* ensure outline etc. are properly placed */
+}
+
+/* Remove or override MathQuill’s focus styling */
+.mq-editable-field.mq-focused,
+.mq-math-mode .mq-editable-field.mq-focused {
+  /* Keep your border color on focus */
+  border: 2px solid #007bff !important;
+  /* Remove or suppress box-shadow (or replace with your own) */
+  box-shadow: none !important;
+  /* If MathQuill sets border-color, override it */
+  border-color: #007bff !important;
+}
+
+/* If you used “double-border” via outline + border trick */
+.mq-editable-field {
+  border: 2px solid #005cbf !important;           /* inner border */
+  outline: 3px solid #99c0ff !important;           /* outer border / highlight */
+  outline-offset: 2px !important;
+}
+
+/* On focus, adjust the outer border if desired */
+.mq-editable-field.mq-focused {
+  outline: 3px solid #3399ff !important;
+}
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+
+    /* Minimal Input Buttons */
+    .input-btn {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .input-btn:hover {
+      background: #f1f5f9;
+      border-color: #0b6efd;
+      transform: translateY(-1px);
+    }
+    
+    .input-btn:active {
+      transform: translateY(0);
+      background: #e2e8f0;
+    }
+    .input-btn.symbol {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      font-weight: 600;
+      font-style: italic;
+    }
+    
+    .input-btn.symbol:hover {
+      background: #fde68a;
+    }
+    .input-btn.special {
+      background: #fef3c7;
+      border-color: #fbbf24;
+    }
+    
+    .input-btn.special:hover {
+      background: #fde68a;
+    }
+    
+    .input-btn.operator {
+      background: #dbeafe;
+      border-color: #3b82f6;
+      font-weight: 600;
+    }
+    
+    .input-btn.operator:hover {
+      background: #bfdbfe;
+    }
+    
+    .input-btn.navigation {
+      background: #e0e7ff;
+      border-color: #818cf8;
+      font-size: 14px;
+    }
+    
+    .input-btn.navigation:hover {
+      background: #c7d2fe;
+    }
+    
+    .input-btn.delete {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+    
+    .input-btn.delete:hover {
+      background: #fecaca;
+    }
     /* Base Styles */
     * { box-sizing: border-box; }
     body { 
@@ -1105,188 +1211,305 @@ class ProblemSolverApp:
             reader.onload = create_proxy(on_load)
             reader.readAsText(file)
     
-    def load_problem(self, index, container):
-        """Load a problem and restore its state"""
-        # ✅ Don't save current state here - it's done in save_to_storage()
-        # Just switch to new problem
+    def generate_minimal_buttons(self, step_data):
+        """Generate minimal button set based on expression and expected structure"""
+        
+        # Parse expression to extract symbols
+        expression_latex = step_data.get("expression", "")
+        expected_struct = step_data.get("expected_structure", {})
+        
+        buttons = set()
+        
+        # Extract operands from expected structure
+        expected_operands = expected_struct.get("operands", {})
+        expected_operators = expected_struct.get("operators", {})
+        
+        # DEBUG: Log structure to see what we're working with
+        window.console.log(f"Expected operands: {expected_operands}")
+        window.console.log(f"Expected operators: {expected_operators}")
+        window.console.log(f"Expression: {expression_latex}")
+        
+        # Add ONLY the specific digits needed from operands, plus limited distractors
+        required_digits = set()
+        has_decimal = False
+        has_negative = False
+        
+        for operand in expected_operands.keys():
+            if self._is_numeric(operand):
+                # Check for negative numbers
+                if str(operand).startswith("-"):
+                    has_negative = True
+                # Extract individual digits from the number
+                num_str = str(operand).replace("-", "").replace(".", "")
+                for digit in num_str:
+                    if digit.isdigit():
+                        required_digits.add(digit)
+                # Check if decimal point is needed
+                if "." in str(operand):
+                    has_decimal = True
+        
+        # Add required digits
+        for digit in required_digits:
+            buttons.add(("digit", digit, digit))
+        
+        # Add 2-3 distractor digits (digits NOT in the answer)
+        all_digits = set("0123456789")
+        available_distractors = list(all_digits - required_digits)
+        
+        if available_distractors:
+            import random
+            random.seed(hash(expression_latex))  # Consistent distractors per step
+            num_distractors = min(3, len(available_distractors))
+            distractors = random.sample(available_distractors, num_distractors)
+            for digit in distractors:
+                buttons.add(("digit", digit, digit))
+        
+        # Add decimal point if needed
+        if has_decimal:
+            buttons.add(("special", ".", "."))
+        
+        # Add negative sign if needed (but not if subtraction operator already present)
+        if has_negative and "Add" not in expected_operators:
+            buttons.add(("operator", "−", "-"))
+        
+        # Add variables/symbols from operands
+        for operand in expected_operands.keys():
+            if not self._is_numeric(operand) and operand != "-1":
+                # Clean symbol name (remove backslashes)
+                clean_sym = operand.replace("\\", "")
+                if len(clean_sym) <= 3:  # Only add short symbols as buttons
+                    buttons.add(("symbol", clean_sym, clean_sym))
+        
+        # Add operators based on expected structure
+        operator_map = {
+            "Add": ("+", "+"),
+            "Mul": ("×", "\\times"),
+            "Pow": ("^", "^"),
+            "Derivative": ("d/dx", "SEQ:d,/,d,x"),
+            "sin": ("sin", "\\sin"),
+            "cos": ("cos", "\\cos"),
+            "tan": ("tan", "\\tan"),
+            "cot": ("cot", "\\cot"),
+            "sec": ("sec", "\\sec"),
+            "csc": ("csc", "\\csc"),
+            "log": ("log", "\\log"),
+            "ln": ("ln", "\\ln"),
+            "exp": ("exp", "\\exp"),
+            "sqrt": ("√", "\\sqrt"),
+            "Abs": ("|x|", "\\left|"),
+            "factorial": ("!", "!"),
+        }
+        
+        for op in expected_operators.keys():
+            if op in operator_map:
+                label, latex = operator_map[op]
+                buttons.add(("operator", label, latex))
+        
+        # Additional operator detection from expression itself
+        # Check for derivative notation
+        if "\\frac{d}{dx}" in expression_latex or "\\frac{d}{d" in expression_latex or "Derivative" in str(expected_operators):
+            buttons.add(("operator", "d/dx", "SEQ:d,/,d,x"))
+            window.console.log("Added derivative button")
+        
+        # Check for multiplication symbols
+        if "\\cdot" in expression_latex or "\\times" in expression_latex or "·" in expression_latex or "*" in expression_latex or "Mul" in expected_operators:
+            if ("operator", "×", "\\times") not in buttons:
+                buttons.add(("operator", "×", "\\times"))
+                window.console.log("Added multiplication button")
+        
+        # Check for division symbols
+        if "/" in expression_latex or "\\div" in expression_latex or "÷" in expression_latex:
+            buttons.add(("operator", "÷", "/"))
+            window.console.log("Added division button from expression")
+        
+        # Check if division is also needed (represented as Mul with Pow(-1))
+        if "Mul" in expected_operators and "Pow" in expected_operators:
+            buttons.add(("operator", "÷", "/"))
+        
+        # Check for subtraction (represented as Add with Mul(-1))
+        if "Add" in expected_operators:
+            buttons.add(("operator", "−", "-"))
+        
+        # Always add parentheses, power, and subscript if there are operators
+        if expected_operators or len(required_digits) > 1:
+            buttons.add(("special", "(", "("))
+            buttons.add(("special", ")", ")"))
+            buttons.add(("special", "xʸ", "^"))
+            buttons.add(("special", "xᵧ", "_"))
+        
+        # Check if matrix notation is needed - IMPROVED DETECTION
+        needs_matrix = False
+        
+        # Check operators for matrix operations
+        matrix_operators = ["MatMul", "MatAdd", "Transpose", "Inverse", "Determinant"]
+        if any(op in expected_operators for op in matrix_operators):
+            needs_matrix = True
+            window.console.log("Matrix detected from operators")
+        
+        # Check operands for matrix notation
+        if not needs_matrix:
+            for operand in expected_operands.keys():
+                operand_str = str(operand)
+                if "Matrix" in operand_str or "[" in operand_str or "," in operand_str:
+                    needs_matrix = True
+                    window.console.log(f"Matrix detected from operand: {operand_str}")
+                    break
+        
+        # Check expression itself for matrix notation
+        if not needs_matrix and "[" in expression_latex:
+            needs_matrix = True
+            window.console.log("Matrix detected from expression")
+        
+        # Add matrix buttons if needed
+        if needs_matrix:
+            window.console.log("Adding matrix brackets and comma")
+            buttons.add(("special", "[", "["))
+            buttons.add(("special", "]", "]"))
+            buttons.add(("special", ",", ","))
+        
+        # Check if fraction notation is needed
+        if "Mul" in expected_operators and "Pow" in expected_operators:
+            buttons.add(("special", "÷", "\\frac"))
+        
+        # Add navigation buttons for MathQuill field
+        buttons.add(("navigation", "◄", "MOVE_LEFT"))
+        buttons.add(("navigation", "►", "MOVE_RIGHT"))
+        buttons.add(("navigation", "⇤", "SELECT_LEFT"))
+        buttons.add(("navigation", "⇥", "SELECT_RIGHT"))
 
-        self.current_problem_index = index
-        prob = self.problem_set[index]
-        steps = prob.get("steps", [])
+        
+        # Always add backspace and clear
+        buttons.add(("delete", "⌫", "BACKSPACE"))
+        buttons.add(("delete", "Clear", "CLEAR"))
+        # Add keyboard activation button
+        buttons.add(("navigation", "⌨️", "ACTIVATE_KEYBOARD"))
+        buttons.add(("navigation", "🔒", "DEACTIVATE_KEYBOARD"))
+        
+        # Sort buttons by type and label
+        sorted_buttons = sorted(buttons, key=lambda x: (
+            0 if x[0] == "digit" else
+            1 if x[0] == "symbol" else
+            2 if x[0] == "operator" else
+            3 if x[0] == "special" else
+            4 if x[0] == "navigation" else
+            5 if x[0] == "delete" else 6,
+            x[1]
+        ))
+        
+        html_parts = []
+        for btn_type, label, action in sorted_buttons:
+            safe_label = html.escape(label)
+            html_parts.append(
+                f"<button class='input-btn {btn_type}' data-action='{action}'>{safe_label}</button>"
+            )
+        
+        return "\n".join(html_parts)
+    
+    def _is_numeric(self, s):
+        """Check if string represents a number"""
+        try:
+            float(str(s))
+            return True
+        except (ValueError, TypeError):
+            return False
+    
+    def handle_input_button(self, step_idx, action, answer_field):
+        """Handle minimal button clicks to input into MathQuill field"""
+        # Get the correct answer field from solve_state using step_idx
+        if not hasattr(self, 'solve_state') or step_idx >= len(self.solve_state):
+            window.console.error(f"Invalid step_idx: {step_idx}")
+            return
+        
+        # Always get the field from solve_state to ensure we have the right one
+        step = self.solve_state[step_idx]
+        answer_field = step.get("answer_mf")
+        
+        if not answer_field:
+            window.console.error(f"No answer field for step {step_idx}")
+            return
+        
+        if action == "BACKSPACE":
+            answer_field.keystroke("Backspace")
+        elif action == "CLEAR":
+            answer_field.latex("")
+        elif action == "MOVE_LEFT":
+            answer_field.keystroke("Left")
+        elif action == "MOVE_RIGHT":
+            answer_field.keystroke("Right")
+        elif action == "SELECT_LEFT":
+            answer_field.keystroke("Shift-Left")
+        elif action == "SELECT_RIGHT":
+            answer_field.keystroke("Shift-Right")
+        elif action == "ACTIVATE_KEYBOARD":
+            # Enable keyboard input by focusing the field
+            try:
+                el = answer_field.el()
+                textarea = el.querySelector('textarea')
+                if textarea:
+                    textarea.style.width = f"{el.offsetWidth}px"
+                    textarea.style.height = f"{el.offsetHeight}px"
+                    textarea.style.overflow = "hidden"
+                    textarea.style.resize = "none"
+                    textarea.style.boxSizing = "border-box"
+                    if textarea:
 
-        container.innerHTML = ""
-
-        # Description
-        if prob.get("description"):
-            desc_div = document.createElement("div")
-            desc_div.className = "problem-description"
-            desc_div.innerHTML = f"<h4>{html.escape(prob.get('title', 'Problem'))}</h4>"
-            container.appendChild(desc_div)
-
-        self.solve_state = []
-
-        # ✅ Check if we have saved state for this problem
-        saved_problem_state = self.problem_states.get(index, [])
-
-        for step_idx, step_data in enumerate(steps):
-            step_div = document.createElement("div")
-            step_div.className = "panel step"
-            step_div.style.display = "none"
-
-            step_desc = step_data.get("description", [])
-            desc_html = ""
-            for blk in step_desc:
-                if blk["type"] == "text":
-                    desc_html += blk["value"]
-                elif blk["type"] == "math":
-                    desc_html += f"\\({blk['latex']}\\)"
-
-            step_div.innerHTML = f"""
-            <div style='font-weight:700;margin-bottom:10px;'>Step {step_idx+1} of {len(steps)}</div>
-            <div class='step-description'>{desc_html}</div>
-            <div style='margin-top:14px;'>
-              <div style='font-weight:700;margin-bottom:8px;'>Your Answer:</div>
-              <div class='math-input step-answer'></div>
-              <div style='display:flex;flex-direction:column;gap:8px;margin-top:10px;'>
-                <button class='btn submitAnswer'>Submit Answer</button>
-                <button class='btn ghost finalizeStep' disabled>Finalize Step</button>
-                <button class='btn nextStep' style='display:none;background:#10b981;'>Next Step →</button>
-              </div>
-            </div>
-            <div class='step-feedback'></div>
-            <div class='attempts-history' style='display:none;'></div>
-            """
-
-            container.appendChild(step_div)
-
-            # Initialize MathQuill
-            if self.MQ:
-                answer_field = self.MQ.MathField(step_div.querySelector(".step-answer"))
-            else:
-                answer_field = None
-
-            # ✅ Create NEW step object with DOM references
-            step_obj = {
-                "step": step_data,
-                "container": step_div,              # ✅ DOM element (not saved)
-                "answer_mf": answer_field,          # ✅ MathQuill field (not saved)
-                "attempts": 0,
-                "attempt_history": [],
-                "correct": False,
-                "finalize_attempts": 0,
-                "finalize_history": [],
-                "structure_correct": False,
-                "finalized": False,
-                "step_start_time": window.Date.now()
-            }
-
-            # ✅ Restore state data from saved state (if exists)
-            if step_idx < len(saved_problem_state):
-                saved_step = saved_problem_state[step_idx]
-
-                # Restore data fields only (not DOM references)
-                step_obj["attempts"] = saved_step.get("attempts", 0)
-                step_obj["attempt_history"] = saved_step.get("attempt_history", [])
-                step_obj["correct"] = saved_step.get("correct", False)
-                step_obj["finalize_attempts"] = saved_step.get("finalize_attempts", 0)
-                step_obj["finalize_history"] = saved_step.get("finalize_history", [])
-                step_obj["structure_correct"] = saved_step.get("structure_correct", False)
-                step_obj["finalized"] = saved_step.get("finalized", False)
-
-                # ✅ Restore UI state based on saved data
-                if saved_step.get("correct"):
-                    # Re-enable finalize button if answer was correct but not finalized
-                    finalize_btn = step_div.querySelector(".finalizeStep")
-                    if finalize_btn and not saved_step.get("finalized"):
-                        finalize_btn.disabled = False
-
-                    # Restore answer in MathQuill field
-                    if answer_field and saved_step.get("attempt_history"):
-                        for attempt in reversed(saved_step["attempt_history"]):
-                            if attempt.get("correct"):
-                                answer_field.latex(attempt.get("answer_latex", ""))
-                                break
-
-                # ✅ Restore finalized state UI
-                if saved_step.get("finalized"):
-                    submit_btn = step_div.querySelector(".submitAnswer")
-                    finalize_btn = step_div.querySelector(".finalizeStep")
-                    if submit_btn:
-                        submit_btn.disabled = True
-                    if finalize_btn:
-                        finalize_btn.disabled = True
-
-                    # Show next step button if not last step
-                    if step_idx + 1 < len(steps):
-                        next_btn = step_div.querySelector(".nextStep")
-                        if next_btn:
-                            next_btn.style.display = "block"
-
-                # ✅ Restore attempt history display
-                if saved_step.get("attempt_history"):
-                    for attempt in saved_step["attempt_history"]:
-                        self.add_attempt_to_history(
-                            step_idx, 
-                            attempt.get("answer_latex", ""), 
-                            attempt.get("correct", False), 
-                            attempt.get("time_taken_seconds", 0)
-                        )
-
-                # ✅ Restore finalize history display
-                if saved_step.get("finalize_history"):
-                    for fin_attempt in saved_step["finalize_history"]:
-                        if not fin_attempt.get("structure_match"):
-                            self.add_finalize_attempt_to_history(
-                                step_idx,
-                                fin_attempt.get("user_structure", {}),
-                                fin_attempt.get("expected_structure", {}),
-                                False
-                            )
-
-            # ✅ Add to solve_state (now with DOM references)
-            self.solve_state.append(step_obj)
-
-            # Add event listeners
-            # In load_problem(), when adding event listeners:
-
-            # ✅ IMPORTANT: Create closure with correct indices
-            def make_submit_handler(s_idx):
-                def handler(e):
-                    window.console.log(f"Submit clicked: step {s_idx}, current problem {self.current_problem_index}")
-                    self.submit_answer(e, s_idx)
-                return handler
-
-            def make_finalize_handler(s_idx):
-                def handler(e):
-                    window.console.log(f"Finalize clicked: step {s_idx}, current problem {self.current_problem_index}")
-                    self.finalize_step(e, s_idx)
-                return handler
-
-            def make_next_handler(s_idx):
-                def handler(e):
-                    window.console.log(f"Next clicked: step {s_idx}, current problem {self.current_problem_index}")
-                    self.next_step(e, s_idx)
-                return handler
-
-            # Then use these:
-            if submit_btn:
-                submit_btn.addEventListener("click", create_proxy(make_submit_handler(step_idx)))
-            if finalize_btn:
-                finalize_btn.addEventListener("click", create_proxy(make_finalize_handler(step_idx)))
-            if next_btn:
-                next_btn.addEventListener("click", create_proxy(make_next_handler(step_idx)))
-        # Show first unfinished step
-        for i, step in enumerate(self.solve_state):
-            if not step.get("finalized", False):
-                self.show_step(i)
-                break
+                    # Temporarily enable the textarea
+                        textarea.removeAttribute('readonly')
+                        textarea.removeAttribute('disabled')
+                        textarea.style.pointerEvents = 'auto'
+                        textarea.style.opacity = '1'
+                        textarea.style.position = 'absolute'  # optional
+                        textarea.style.left = '0'
+                        textarea.style.width = f"{el.offsetWidth}px"
+                        textarea.style.height = f"{el.offsetHeight}px"
+                        textarea.style.overflow = 'hidden'
+                        textarea.style.resize = 'none'
+                        textarea.focus()
+                    # Focus it to show keyboard
+                    textarea.focus()
+                    window.console.log(f"✅ Keyboard activated for step {step_idx}")
+            except Exception as e:
+                window.console.error(f"Failed to activate keyboard for step {step_idx}: {e}")
+        elif action == "DEACTIVATE_KEYBOARD":
+            # Disable keyboard input by blurring and hiding the field
+            try:
+                el = answer_field.el()
+                textarea = el.querySelector('textarea')
+                if textarea:
+                    textarea.blur()
+                    textarea.setAttribute('readonly', 'readonly')
+                    textarea.setAttribute('disabled', 'disabled')
+                    textarea.style.pointerEvents = 'none'
+                    textarea.style.opacity = '0'
+                    textarea.style.position = 'absolute'
+                    textarea.style.left = '-9999px'
+                    window.console.log(f"✅ Keyboard deactivated for step {step_idx}")
+            except Exception as e:
+                window.console.error(f"Failed to deactivate keyboard for step {step_idx}: {e}")
+        elif action == "^":
+            # Power button - use cmd for exponent
+            answer_field.cmd("^")
+        elif action == "_":
+            # Subscript button - use cmd for subscript
+            answer_field.cmd("_")
+        elif action.startswith("SEQ:"):
+            # Handle key sequences (e.g., SEQ:d,/,d,x)
+            sequence = action[4:]  # Remove "SEQ:" prefix
+            keys = sequence.split(",")
+            for key in keys:
+                key = key.strip()
+                if key == "/":
+                    answer_field.cmd("/")
+                elif key.startswith("\\"):
+                    answer_field.cmd(key)
+                else:
+                    answer_field.write(key)
         else:
-            # All finalized, show first
-            if self.solve_state:
-                self.show_step(0)
-
-        # ✅ Update header after loading (now solve_state has proper structure)
-        self.update_step_progress_display(index)    
+            # Insert the LaTeX command or character
+            if action.startswith("\\"):
+                answer_field.cmd(action)
+            else:
+                answer_field.write(action)
 
     def validate_problem_set(self, problems):
         """
@@ -1542,6 +1765,18 @@ class ProblemSolverApp:
 
         window.console.log(f"=== Toggle problem called: index={index}, current={self.current_problem_index} ===")
 
+        # Get the accordion element
+        acc = document.querySelector(f".accordion-problem[data-index='{index}']")
+        if not acc:
+            window.console.error(f"Accordion {index} not found")
+            return
+
+        # Check if clicking on an already open accordion - close it
+        if acc.classList.contains("open"):
+            window.console.log(f"Accordion {index} is already open, closing it")
+            acc.classList.remove("open")
+            return
+
         # ✅ STEP 1: Save current problem state if switching away
         if self.current_problem_index is not None and self.current_problem_index != index and hasattr(self, 'solve_state'):
             window.console.log(f"Saving state for problem {self.current_problem_index} before switching")
@@ -1570,11 +1805,6 @@ class ProblemSolverApp:
             accordions[i].classList.remove("open")
 
         # ✅ STEP 3: Open selected accordion
-        acc = document.querySelector(f".accordion-problem[data-index='{index}']")
-        if not acc:
-            window.console.error(f"Accordion {index} not found")
-            return
-
         acc.classList.add("open")
         body = acc.querySelector(".accordion-body")
 
@@ -1597,7 +1827,6 @@ class ProblemSolverApp:
 
         # ✅ STEP 5: Verify state is correct
         window.console.log(f"Final state check: current_problem_index={self.current_problem_index}, solve_state length={len(self.solve_state) if hasattr(self, 'solve_state') else 0}")
-    
     def load_problem(self, index, container):
         """Load a problem and restore its state"""
 
@@ -1610,12 +1839,103 @@ class ProblemSolverApp:
 
         container.innerHTML = ""
         
-        # Description
-        if prob.get("description"):
-            desc_div = document.createElement("div")
-            desc_div.className = "problem-description"
-            desc_div.innerHTML = f"<h4>{html.escape(prob.get('title', 'Problem'))}</h4>"
-            container.appendChild(desc_div)
+        # Description - display both title and description content at problem level
+        desc_div = document.createElement("div")
+        desc_div.className = "problem-description"
+        desc_div.style.cssText = "background:#f0f9ff;padding:16px;border-radius:8px;margin-bottom:16px;"
+        
+        # Add title
+        title_html = f"<h4 style='margin:0 0 12px 0;'>{html.escape(prob.get('title', 'Problem'))}</h4>"
+        
+        # Add problem description content if it exists
+        prob_desc_content = prob.get("description", "")
+        prob_desc_html = ""
+        
+        if prob_desc_content:
+            window.console.log(f"Problem description type: {type(prob_desc_content)}")
+            # Check if description is a list of blocks (like step descriptions)
+            if isinstance(prob_desc_content, (list, tuple)):
+                for blk in prob_desc_content:
+                    if isinstance(blk, dict):
+                        if blk.get("type") == "text":
+                            prob_desc_html += blk.get("value", "")
+                        elif blk.get("type") == "math":
+                            latex_content = blk.get('latex', '')
+                            
+                            window.console.log(f"Problem desc: Raw latex_content = {latex_content}, type = {type(latex_content)}")
+                            
+                            # Check if it's a Python list (direct list object)
+                            if isinstance(latex_content, (list, tuple)):
+                                window.console.log(f"Problem desc: Direct list matrix")
+                                rows = []
+                                for row in latex_content:
+                                    if isinstance(row, (list, tuple)):
+                                        rows.append(" & ".join(str(x) for x in row))
+                                    else:
+                                        rows.append(str(row))
+                                latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                prob_desc_html += f"$${latex_matrix}$$"
+                            
+                            # Check if string contains matrix pattern with \left[ wrappers
+                            elif isinstance(latex_content, str) and r"\left[" in latex_content and r"\right]" in latex_content:
+                                window.console.log(f"Problem desc: String with LaTeX matrix wrappers")
+                                import re
+                                # Remove \left[ and \right] and extract the content
+                                cleaned = latex_content.replace(r"\left[", "[").replace(r"\right]", "]")
+                                window.console.log(f"Problem desc: Cleaned = {cleaned}")
+                                
+                                # Try to find [[...]] pattern
+                                matrix_match = re.search(r'\[\[.*?\]\]', cleaned)
+                                if matrix_match:
+                                    matrix_str = matrix_match.group(0)
+                                    window.console.log(f"Problem desc: Found matrix string = {matrix_str}")
+                                    try:
+                                        import json
+                                        matrix_data = json.loads(matrix_str)
+                                        rows = []
+                                        for row in matrix_data:
+                                            if isinstance(row, (list, tuple)):
+                                                rows.append(" & ".join(str(x) for x in row))
+                                            else:
+                                                rows.append(str(row))
+                                        latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                        window.console.log(f"Problem desc: Converted to LaTeX = {latex_matrix}")
+                                        
+                                        # Check if there's additional content after the matrix
+                                        remaining = cleaned.replace(matrix_str, "", 1)
+                                        prob_desc_html += f"$${latex_matrix}{remaining}$$"
+                                    except Exception as e:
+                                        window.console.error(f"Problem desc: JSON parse failed: {e}")
+                                        prob_desc_html += f"\\({latex_content}\\)"
+                                else:
+                                    # No matrix pattern found, use as-is
+                                    prob_desc_html += f"\\({latex_content}\\)"
+                            
+                            # Check if plain string starts with [[
+                            elif isinstance(latex_content, str) and latex_content.strip().startswith('[['):
+                                window.console.log(f"Problem desc: Plain JSON matrix string")
+                                try:
+                                    import json
+                                    matrix_data = json.loads(latex_content)
+                                    rows = []
+                                    for row in matrix_data:
+                                        rows.append(" & ".join(str(x) for x in row))
+                                    latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                    prob_desc_html += f"$${latex_matrix}$$"
+                                except Exception as e:
+                                    window.console.error(f"Problem desc: matrix parse error: {e}")
+                                    prob_desc_html += f"\\({latex_content}\\)"
+                            
+                            else:
+                                # Regular LaTeX string
+                                window.console.log(f"Problem desc: Regular LaTeX")
+                                prob_desc_html += f"\\({latex_content}\\)"
+            elif isinstance(prob_desc_content, str):
+                # Plain string description
+                prob_desc_html = prob_desc_content
+        
+        desc_div.innerHTML = title_html + prob_desc_html
+        container.appendChild(desc_div)
         
         self.solve_state = []
         
@@ -1630,7 +1950,81 @@ class ProblemSolverApp:
                 if blk["type"] == "text":
                     desc_html += blk["value"]
                 elif blk["type"] == "math":
-                    desc_html += f"\\({blk['latex']}\\)"
+                    latex_content = blk.get('latex', '')
+                    
+                    window.console.log(f"Step {step_idx}: Raw latex_content = {latex_content}, type = {type(latex_content)}")
+                    
+                    # Check if it's a Python list (direct list object)
+                    if isinstance(latex_content, (list, tuple)):
+                        window.console.log(f"Step {step_idx}: Direct list matrix")
+                        rows = []
+                        for row in latex_content:
+                            if isinstance(row, (list, tuple)):
+                                rows.append(" & ".join(str(x) for x in row))
+                            else:
+                                rows.append(str(row))
+                        latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                        desc_html += f"$${latex_matrix}$$"
+                    
+                    # Check if string contains matrix pattern with \left[ wrappers
+                    elif isinstance(latex_content, str) and r"\left[" in latex_content and r"\right]" in latex_content:
+                        window.console.log(f"Step {step_idx}: String with LaTeX matrix wrappers")
+                        import re
+                        # Remove \left[ and \right] and extract the content
+                        cleaned = latex_content.replace(r"\left[", "[").replace(r"\right]", "]")
+                        window.console.log(f"Step {step_idx}: Cleaned = {cleaned}")
+                        
+                        # Try to find [[...]] pattern
+                        matrix_match = re.search(r'\[\[.*?\]\]', cleaned)
+                        if matrix_match:
+                            matrix_str = matrix_match.group(0)
+                            window.console.log(f"Step {step_idx}: Found matrix string = {matrix_str}")
+                            try:
+                                import json
+                                matrix_data = json.loads(matrix_str)
+                                rows = []
+                                for row in matrix_data:
+                                    if isinstance(row, (list, tuple)):
+                                        rows.append(" & ".join(str(x) for x in row))
+                                    else:
+                                        rows.append(str(row))
+                                latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                window.console.log(f"Step {step_idx}: Converted to LaTeX = {latex_matrix}")
+                                
+                                # Check if there's additional content after the matrix (like \cdot3)
+                                remaining = cleaned.replace(matrix_str, "", 1)
+                                desc_html += f"$${latex_matrix}{remaining}$$"
+                            except Exception as e:
+                                window.console.error(f"Step {step_idx}: JSON parse failed: {e}")
+                                desc_html += f"\\({latex_content}\\)"
+                        else:
+                            # No matrix pattern found, use as-is
+                            desc_html += f"\\({latex_content}\\)"
+                    
+                    # Check if plain string starts with [[
+                    elif isinstance(latex_content, str) and latex_content.strip().startswith('[['):
+                        window.console.log(f"Step {step_idx}: Plain JSON matrix string")
+                        try:
+                            import json
+                            matrix_data = json.loads(latex_content)
+                            rows = []
+                            for row in matrix_data:
+                                rows.append(" & ".join(str(x) for x in row))
+                            latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                            desc_html += f"$${latex_matrix}$$"
+                        except Exception as e:
+                            window.console.error(f"Step {step_idx}: matrix parse error: {e}")
+                            desc_html += f"\\({latex_content}\\)"
+                    
+                    else:
+                        # Regular LaTeX string
+                        window.console.log(f"Step {step_idx}: Regular LaTeX")
+                        desc_html += f"\\({latex_content}\\)"
+            
+            window.console.log(f"Step {step_idx} final desc_html: {desc_html}")
+            
+            # ⭐ GENERATE MINIMAL BUTTONS
+            button_html = self.generate_minimal_buttons(step_data)
             
             step_div.innerHTML = f"""
             <div style='font-weight:700;margin-bottom:10px;'>Step {step_idx+1} of {len(steps)}</div>
@@ -1638,6 +2032,14 @@ class ProblemSolverApp:
             <div style='margin-top:14px;'>
               <div style='font-weight:700;margin-bottom:8px;'>Your Answer:</div>
               <div class='math-input step-answer'></div>
+              <div style='margin-top:14px;'>
+                <div style='font-weight:600;margin-bottom:8px;font-size:14px;'>Input Buttons:</div>
+                <div class='button-grid' style='display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px;margin-bottom:12px;'>
+                  <button class='input-btn navigation' data-action='ACTIVATE_KEYBOARD'>⌨️</button>
+                  <button class='input-btn navigation' data-action='DEACTIVATE_KEYBOARD'>🔒</button>
+                  {button_html}
+                </div>
+              </div>
               <div style='display:flex;flex-direction:column;gap:8px;margin-top:10px;'>
                 <button class='btn submitAnswer'>Submit Answer</button>
                 <button class='btn ghost finalizeStep' disabled>Finalize Step</button>
@@ -1653,6 +2055,28 @@ class ProblemSolverApp:
             # Initialize MathQuill
             if self.MQ:
                 answer_field = self.MQ.MathField(step_div.querySelector(".step-answer"))
+                
+                """
+                # GLOBALLY DISABLE TEXTAREA TO PREVENT ANDROID KEYBOARD
+                try:
+                    el = answer_field.el()
+                    textarea = el.querySelector('textarea')
+                    if textarea:
+                        # Make textarea permanently non-interactive
+                        textarea.setAttribute('readonly', 'readonly')
+                        textarea.setAttribute('disabled', 'disabled')
+                        textarea.style.pointerEvents = 'none'
+                        textarea.style.opacity = '0'
+                        textarea.style.position = 'absolute'
+                        textarea.style.left = '-9999px'
+                        
+                        # Prevent all focus events
+                        def prevent_focus_handler(e):
+                            textarea.blur()
+                        textarea.addEventListener('focus', create_proxy(prevent_focus_handler), True)
+                except Exception as e:
+                    window.console.log(f"Error disabling textarea: {e}")
+                """
             else:
                 answer_field = None
             
@@ -1690,6 +2114,19 @@ class ProblemSolverApp:
                 finalize_btn.addEventListener("click", create_proxy(lambda e, i=step_idx: self.finalize_step(e, i)))
             if next_btn:
                 next_btn.addEventListener("click", create_proxy(lambda e, i=step_idx: self.next_step(e, i)))
+            
+            # ⭐ ADD INPUT BUTTON LISTENERS
+            input_btns = step_div.querySelectorAll(".input-btn")
+            for btn_idx in range(input_btns.length):
+                btn = input_btns[btn_idx]
+                action = btn.getAttribute("data-action")
+                
+                def make_input_handler(s_idx, act, ans_field):
+                    def handler(e):
+                        self.handle_input_button(s_idx, act, ans_field)
+                    return handler
+                
+                btn.addEventListener("click", create_proxy(make_input_handler(step_idx, action, answer_field)))
         
         # Show first unfinished step
         for i, step in enumerate(self.solve_state):
@@ -1698,6 +2135,27 @@ class ProblemSolverApp:
                 break
         else:
             self.show_step(0)
+        
+        # ⭐ RENDER MATHJAX FOR ALL DESCRIPTIONS
+        def render_mathjax():
+            if hasattr(window, 'MathJax'):
+                try:
+                    if hasattr(window.MathJax, 'typesetPromise'):
+                        window.MathJax.typesetPromise([container])
+                        window.console.log("✅ MathJax typesetPromise called")
+                    elif hasattr(window.MathJax, 'typeset'):
+                        window.MathJax.typeset([container])
+                        window.console.log("✅ MathJax typeset called")
+                    elif hasattr(window.MathJax, 'Hub'):
+                        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub, container])
+                        window.console.log("✅ MathJax Hub.Queue called")
+                except Exception as e:
+                    window.console.error(f"❌ MathJax error: {e}")
+            else:
+                window.console.error("❌ MathJax not available")
+        
+        # Delay rendering to ensure DOM is ready
+        window.setTimeout(create_proxy(render_mathjax), 200)
         
         self.save_to_storage()
     

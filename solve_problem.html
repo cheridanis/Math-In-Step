@@ -1248,18 +1248,17 @@ input[type="file"]:hover {
             <div class="panel">
               <h3>📂 Load Problem Set</h3>
 
-              <label>📎 Upload File</label>
+              <label>Load Problem Set From File</label>
               <input type="file" id="uploadFile" accept=".txt,text/plain" />
 
               <div style="text-align: center; margin: 12px 0; color: #94a3b8">— OR —</div>
 
               <label>📋 Paste JSON</label>
               <textarea id="pasteJson" placeholder="Paste base64-compressed JSON"></textarea>
-              <button id="loadJsonBtn" class="btn">📂 Load Problem Set</button>
+              <button id="loadJsonBtn" class="btn">📂 Load Problem Set From Pasted JSON</button>
 
               <hr style="margin: 16px 0; border: none; border-top: 1px solid #e5e7eb" />
 
-              <button id="resetSolveBtn" class="btn ghost">♻️ Reset Current</button>
             </div>
           </div>
 
@@ -1267,8 +1266,28 @@ input[type="file"]:hover {
           <div id="exportPage" class="page">
             <div class="panel">
               <h3>📤 Submit Progress</h3>
-              <button id="exportProgressBtn" class="btn" style="background: #10b981">📤 Submit in One File</button>
-              <button id="exportTelegramBtn" class="btn" style="background: #0088cc">✈️ Submit in Small Chunks</button>
+              <h4 style="text-align: center;">Teacher Phone Number</h4>
+              <div style="align-items: center;justify-content: center;height:100px;margin-top: 20px;display:flex">
+              <a id="shareWhatsappProgressBtn"
+                href="#" 
+                onclick="window.open(`https://wa.me/${document.getElementById('teacherPhoneNumber').value}?text=${encodeURIComponent('###???')}`, '_blank'); return false;"
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
+                     alt="WhatsApp" 
+                     width="40" 
+                     height="40">
+              </a>
+                <input type="text" style="font-size:1.2rem;text-align: center;" id="teacherPhoneNumber" placeholder="Enter phone number" value="+628161342820" />
+              <a id="exportTelegramBtn"
+              href="#" 
+              onclick="window.open('https://t.me/share/url?text=' + encodeURIComponent(document.getElementById('msg').value), '_blank'); return false;"
+              >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" 
+                   width="40" height="40" alt="Telegram">
+              </a>
+              </div>
+              <button id="exportProgressBtn" class="btn" style="background: #10b981">📤 Export to File</button>
+              <!--<button id="exportTelegramBtn" class="btn" style="background: #0088cc">✈️ Submit in Small Chunks</button>-->
             </div>
           </div>
 
@@ -3480,18 +3499,17 @@ input[type="file"]:hover {
               else:
                   window.console.error("Load JSON button not found")
 
-              # Action buttons with null checks
-              reset_btn = document.querySelector("#resetSolveBtn")
-              if reset_btn:
-                  reset_btn.addEventListener("click", create_proxy(lambda e: self.reset_current(e)))
-              else:
-                  window.console.error("Reset button not found")
-
               export_btn = document.querySelector("#exportProgressBtn")
               if export_btn:
                   export_btn.addEventListener("click", create_proxy(lambda e: self.export_progress(e)))
               else:
                   window.console.error("Submit progress button not found")
+              whatsapp_btn = document.querySelector("#shareWhatsappProgressBtn")
+              if whatsapp_btn:
+                  whatsapp_btn.addEventListener("click", create_proxy(lambda e: self.share_whatsapp_progress(e)))
+              else:
+                  window.console.error("Submit progress button not found")
+
 
               telegram_btn = document.querySelector("#exportTelegramBtn")
               if telegram_btn:
@@ -4988,18 +5006,18 @@ input[type="file"]:hover {
 
               # Parse user answer
               parsed_user = self.math_parser.parse(user_latex)
-              if not parsed_user:
+              if parsed_user is None:
                   self.show_feedback(step_idx, "❌ Could not parse your answer", "#b91c1c")
                   return
 
               # Parse expression
               expression_latex = step_data.get("expression", "")
-              if not expression_latex:
+              if expression_latex is None:
                   self.show_feedback(step_idx, "❌ No expression to validate against", "#b91c1c")
                   return
 
               parsed_expression = self.math_parser.parse(expression_latex)
-              if not parsed_expression:
+              if parsed_expression is None:
                   self.show_feedback(step_idx, "❌ Could not parse expression", "#b91c1c")
                   return
 
@@ -5352,51 +5370,51 @@ input[type="file"]:hover {
                   header.innerHTML = f"{finalized}/{total} completed"
                   header.style.color = "#6b7280"
 
-          def reset_current(self, event):
-              if self.current_problem_index is None:
-                  window.alert("No problem selected")
-                  return
-
-              if not window.confirm("Reset current problem progress?"):
-                  return
-
-              # Reset state
-              for step in self.solve_state:
-                  step["attempts"] = 0
-                  step["attempt_history"] = []
-                  step["correct"] = False
-                  step["finalized"] = False
-                  if step.get("answer_mf"):
-                      step["answer_mf"].latex("")
-
-                  history = step["container"].querySelector(".attempts-history")
-                  if history:
-                      history.innerHTML = ""
-                      history.style.display = "none"
-
-                  submit_btn = step["container"].querySelector(".submitAnswer")
-                  if submit_btn:
-                      submit_btn.disabled = False
-                  finalize_btn = step["container"].querySelector(".finalizeStep")
-                  if finalize_btn:
-                      finalize_btn.disabled = True
-                  next_btn = step["container"].querySelector(".nextStep")
-                  if next_btn:
-                      next_btn.style.display = "none"
-                  feedback = step["container"].querySelector(".step-feedback")
-                  if feedback:
-                      feedback.innerHTML = ""
-
-              # Save and refresh
-              self.problem_states[self.current_problem_index] = self.solve_state
-              self.save_to_storage()
-              self.show_step(0)
-              self.update_progress(self.current_problem_index)
-
-              window.alert("Problem reset successfully")
+          #def reset_current(self, event):
+          #    if self.current_problem_index is None:
+          #        window.alert("No problem selected")
+          #        return
+#
+          #    if not window.confirm("Reset current problem progress?"):
+          #        return
+#
+          #    # Reset state
+          #    for step in self.solve_state:
+          #        step["attempts"] = 0
+          #        step["attempt_history"] = []
+          #        step["correct"] = False
+          #        step["finalized"] = False
+          #        if step.get("answer_mf"):
+          #            step["answer_mf"].latex("")
+#
+          #        history = step["container"].querySelector(".attempts-history")
+          #        if history:
+          #            history.innerHTML = ""
+          #            history.style.display = "none"
+#
+          #        submit_btn = step["container"].querySelector(".submitAnswer")
+          #        if submit_btn:
+          #            submit_btn.disabled = False
+          #        finalize_btn = step["container"].querySelector(".finalizeStep")
+          #        if finalize_btn:
+          #            finalize_btn.disabled = True
+          #        next_btn = step["container"].querySelector(".nextStep")
+          #        if next_btn:
+          #            next_btn.style.display = "none"
+          #        feedback = step["container"].querySelector(".step-feedback")
+          #        if feedback:
+          #            feedback.innerHTML = ""
+#
+          #    # Save and refresh
+          #    self.problem_states[self.current_problem_index] = self.solve_state
+          #    self.save_to_storage()
+          #    self.show_step(0)
+          #    self.update_progress(self.current_problem_index)
+#
+          #    window.alert("Problem reset successfully")
 
           def export_progress(self, event):
-              """Export student progress with proper JsProxy conversion"""
+              """Export student progress with complete problem states for all problems"""
               if not self.problem_set:
                   window.alert("No problems to submit")
                   return
@@ -5404,7 +5422,7 @@ input[type="file"]:hover {
               try:
                   window.console.log("=== Starting progress submission ===")
 
-                  # ✅ Save current problem state first
+                  # Save current problem state first
                   if self.current_problem_index is not None and hasattr(self, 'solve_state'):
                       window.console.log(f"Saving current problem {self.current_problem_index} state")
                       serializable_state = []
@@ -5424,38 +5442,70 @@ input[type="file"]:hover {
 
                       self.problem_states[self.current_problem_index] = serializable_state
 
-                  # ✅ Build submission data with conversion
+                  # NEW: Create complete problem states for ALL problems in the set
+                  window.console.log("Building complete problem states for all problems...")
+                  complete_problem_states = {}
+
+                  for prob_idx in range(len(self.problem_set)):
+                      if prob_idx in self.problem_states:
+                          # Use existing state for worked problems
+                          window.console.log(f"Problem {prob_idx}: Using existing state")
+                          complete_problem_states[prob_idx] = self.problem_states[prob_idx]
+                      else:
+                          # Create empty state for unworked problems
+                          window.console.log(f"Problem {prob_idx}: Creating empty state (not worked)")
+                          problem = self.problem_set[prob_idx]
+                          steps = problem.get("steps", [])
+                          empty_state = []
+
+                          for step_idx, step_data in enumerate(steps):
+                              empty_step = {
+                                  "step": step_data,
+                                  "attempts": 0,
+                                  "attempt_history": [],
+                                  "correct": False,
+                                  "finalize_attempts": 0,
+                                  "finalize_history": [],
+                                  "structure_correct": False,
+                                  "finalized": False,
+                                  "step_start_time": 0
+                              }
+                              empty_state.append(empty_step)
+
+                          complete_problem_states[prob_idx] = empty_state
+
+                  # Build submission data with complete states
                   window.console.log("Building submission data...")
                   raw_export_data = {
                       "problem_set_id": self.current_problem_set_uuid,
                       "problem_set": self.problem_set,
-                      "problem_states": self.problem_states,
+                      "problem_states": complete_problem_states,  # Now includes ALL problems
                       "export_date": window.Date.new().toISOString()
                   }
 
-                  # ✅ Convert all JsProxy objects to native Python types
+                  # Convert all JsProxy objects to native Python types
                   window.console.log("Converting to native types...")
                   export_data = self._convert_to_native(raw_export_data)
 
-                  # ✅ Serialize to JSON
+                  # Serialize to JSON
                   window.console.log("Serializing to JSON...")
                   json_str = json.dumps(export_data)
                   window.console.log(f"JSON length: {len(json_str)}")
 
-                  # ✅ Compress
+                  # Compress
                   window.console.log("Compressing...")
                   import brotli
                   compressed = brotli.compress(json_str.encode('utf-8'))
                   window.console.log(f"Compressed length: {len(compressed)}")
 
-                  # ✅ Encode to base64
+                  # Encode to base64
                   b64_str = base64.b64encode(compressed).decode('utf-8')
                   window.console.log(f"Base64 length: {len(b64_str)}")
 
-                  # ✅ Create export file content
+                  # Create export file content
                   output = f"=== STUDENT PROGRESS EXPORT ===\n{b64_str}\n=== END EXPORT ==="
 
-                  # ✅ Download as file
+                  # Download as file
                   blob = window.Blob.new([output], {"type": "text/plain"})
                   url = window.URL.createObjectURL(blob)
                   a = document.createElement("a")
@@ -5468,14 +5518,19 @@ input[type="file"]:hover {
                   # Cleanup
                   window.setTimeout(create_proxy(lambda: window.URL.revokeObjectURL(url)), 1000)
 
-                  window.console.log("✅ Progress submission successful!")
-                  window.alert("✅ Progress submitted successfully!")
+                  # Log summary
+                  worked_problems = len(self.problem_states)
+                  total_problems = len(self.problem_set)
+                  window.console.log(f"Export complete: {worked_problems}/{total_problems} problems worked on")
+
+                  window.console.log("Progress submission successful!")
+                  window.alert(f"Progress submitted successfully!\nWorked on: {worked_problems}/{total_problems} problems")
 
               except Exception as e:
-                  window.console.error(f"❌ Submit progress failed: {e}")
+                  window.console.error(f"Submit progress failed: {e}")
                   import traceback
                   window.console.error(traceback.format_exc())
-                  window.alert(f"❌ Submit failed: {e}")
+                  window.alert(f"Submit failed: {e}")
 
           def export_telegram(self, event):
               # Simplified telegram export

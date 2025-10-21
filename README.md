@@ -1,3 +1,8 @@
+<p align="center">
+  <a href="https://www.mercubuana.ac.id/">
+    <img src="logoumb.webp" alt="UMB Logo" width="200">
+  </a>
+</p>
 ## 🎓 Math-in-Step
 **Math-In-Step** is a fully portable, browser-based symbolic math solver that runs entirely from a single HTML file — no installation, no backend, but yes, still require internet connection to download Pyscript (python-in-browser) and other libraries.
 Built with PyScript, SymPy, and Lark, **Math-In-Step** provides a simple ecosystem to provide scaffolded, step-by-step math solving experience. It doesn’t just check answers — it understands the structure and reasoning behind them.
@@ -46,7 +51,7 @@ This **Math-In=Step** project is an outcome of **Pengabdian Kepada Masyarakat** 
 
 As part of UMB's commitment to community and educational outreach, this tool was developed to support mathematics learning in schools and communities.
 
-We gratefully acknowledge the support from UMB and all participating faculty, staff, and students.
+We gratefully acknowledge the support from UMB and all participating faculty, staff, and students. And we also acknowledge the support from Dinas Pendidikan Provinsi DKI Jakarta c.q. Suku Dinas Pendidikan Wilayah II Jakarta Barat for the collaboration opportunity.
 
 <p align="center">
   <a href="https://www.mercubuana.ac.id/">

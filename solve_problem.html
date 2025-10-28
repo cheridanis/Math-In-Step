@@ -164,16 +164,28 @@ print(f"   window type: {type(pyscript.window)}")
 
     <!-- MathJax Configuration -->
     <script>
-      window.MathJax = {
-        chtml: { scale: 1.2 },
-        startup: { 
-          typeset: false,
-          ready: () => {
-            console.log('✅ MathJax ready');
-            MathJax.startup.defaultReady();
-          }
-        }
-      };
+     window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)'], ['$', '$']],
+    displayMath: [['\\[', '\\]'], ['$$', '$$']]
+  },
+  asciimath: {
+    delimiters: [['`', '`']]
+  },
+  loader: {
+    load: ['input/tex', 'input/asciimath', 'output/chtml']
+  },
+  chtml: { 
+    scale: 1.2 
+  },
+  startup: { 
+    typeset: false,
+    ready: () => {
+      console.log('✅ MathJax ready (LaTeX + AsciiMath)');
+      MathJax.startup.defaultReady();
+    }
+  }
+};
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 
@@ -1024,9 +1036,9 @@ input[type="file"]:hover {
     min-height: 60px;
   }
   
-  /* 4 COLUMN GRID - MINIMAL GAPS */
+  /* 5 COLUMN GRID - MINIMAL GAPS */
   .button-grid {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(5, 1fr) !important;
     gap: 3px !important;  /* Minimal gap for aesthetics */
     margin: 0 !important;
     padding: 0 !important;
@@ -1034,6 +1046,13 @@ input[type="file"]:hover {
   
   /* BIGGER KEYBOARD BUTTONS */
   .input-btn.keyboard-activate,
+    min-height: 80px;
+    grid-column: span 3;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(145, 234, 102, 0.5);
+    padding: 12px 8px;
+  }
+
   .input-btn.keyboard-lock {
     min-height: 80px;
     grid-column: span 2;
@@ -1391,23 +1410,37 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="numbersBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn digit" data-action="7">7</button>
                     <button class="input-btn digit" data-action="8">8</button>
                     <button class="input-btn digit" data-action="9">9</button>
-                    <button class="input-btn operator" data-action="/">÷</button>
+                    <button class="input-btn special" data-action="^" id="freestylePower"></button>
+                    <button class="input-btn special" data-action="_" id="freestyleSubscript"></button>
                     <button class="input-btn digit" data-action="4">4</button>
                     <button class="input-btn digit" data-action="5">5</button>
                     <button class="input-btn digit" data-action="6">6</button>
+                    <button class="input-btn operator" data-action="/">÷</button>
                     <button class="input-btn operator" data-action="\\times">×</button>
                     <button class="input-btn digit" data-action="1">1</button>
                     <button class="input-btn digit" data-action="2">2</button>
                     <button class="input-btn digit" data-action="3">3</button>
                     <button class="input-btn operator" data-action="-">−</button>
-                    <button class="input-btn digit" data-action="0">0</button>
-                    <button class="input-btn special" data-action=".">.</button>
                     <button class="input-btn operator" data-action="+">+</button>
+                    <button class="input-btn special" data-action="(">(</button>
+                    <button class="input-btn digit" data-action="0">0</button>
+                    <button class="input-btn special" data-action=")">)</button>
+                    <button class="input-btn special" data-action=".">.</button>
                     <button class="input-btn special" data-action="=">=</button>
+                    <button class="input-btn special" data-action="[">[</button>
+                    <button class="input-btn special" data-action=",">,</button>
+                    <button class="input-btn special" data-action="]">]</button>
+                    <button class="input-btn symbol" data-action="x">x</button>
+                    <button class="input-btn delete" data-action="BACKSPACE">⌫</button>
+                    <button class="input-btn navigation" data-action="MOVE_LEFT" id="freestyleMoveLeft"></button>
+                    <button class="input-btn navigation" data-action="MOVE_RIGHT" id="freestyleMoveRight"></button>
+                    <button class="input-btn navigation" data-action="SELECT_LEFT" id="freestyleSelectLeft"></button>
+                    <button class="input-btn navigation" data-action="SELECT_RIGHT" id="freestyleSelectRight"></button>
+                    <button class="input-btn delete" data-action="CLEAR">Clear</button>
                   </div>
                 </div>
               </div>
@@ -1419,23 +1452,19 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="algebraBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn symbol" data-action="x">x</button>
                     <button class="input-btn symbol" data-action="y">y</button>
                     <button class="input-btn symbol" data-action="z">z</button>
-                    <button class="input-btn special" data-action="^" id="freestylePower"></button>
                     <button class="input-btn symbol" data-action="a">a</button>
                     <button class="input-btn symbol" data-action="b">b</button>
                     <button class="input-btn symbol" data-action="c">c</button>
-                    <button class="input-btn special" data-action="_" id="freestyleSubscript"></button>
-                    <button class="input-btn special" data-action="\\sqrt">√</button>
                     <button class="input-btn special" data-action="\\frac">÷(fr)</button>
-                    <button class="input-btn special" data-action="(">(</button>
-                    <button class="input-btn special" data-action=")">)</button>
                     <button class="input-btn special" data-action="|">|x|</button>
                     <button class="input-btn operator" data-action="\\times">×</button>
                     <button class="input-btn operator" data-action="/">÷</button>
                     <button class="input-btn operator" data-action="+">+</button>
+                    <button class="input-btn special" data-action="\\sqrt">√</button>
                   </div>
                 </div>
               </div>
@@ -1447,7 +1476,7 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="calculusBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn operator" data-action="SEQ:d,/,d,x">d/dx</button>
                     <button class="input-btn operator" data-action="\\int">∫</button>
                     <button class="input-btn operator" data-action="\\sum">Σ</button>
@@ -1472,7 +1501,7 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="trigBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn operator" data-action="\\sin">sin</button>
                     <button class="input-btn operator" data-action="\\cos">cos</button>
                     <button class="input-btn operator" data-action="\\tan">tan</button>
@@ -1496,7 +1525,7 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="matrixBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn special" data-action="[">[</button>
                     <button class="input-btn special" data-action="]">]</button>
                     <button class="input-btn special" data-action=",">,</button>
@@ -1516,7 +1545,7 @@ input[type="file"]:hover {
                   <span class="keyboard-accordion-icon">▼</span>
                 </div>
                 <div id="greekBody" class="keyboard-accordion-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                     <button class="input-btn symbol" data-action="\\alpha">α</button>
                     <button class="input-btn symbol" data-action="\\beta">β</button>
                     <button class="input-btn symbol" data-action="\\gamma">γ</button>
@@ -1534,13 +1563,13 @@ input[type="file"]:hover {
               </div>
 
                 <!-- Navigation & Controls Accordion -->
-                <div class="keyboard-accordion" style="margin-bottom: 6px">
-                  <div class="keyboard-accordion-header" data-target="navBody">
+                <div style="display:none" class="keyboard-accordion" style="margin-bottom: 6px">
+                  <div class="keyboard-accordion-header" data-target="hiddenBody">
                     <span>🎮 Navigation & Controls</span>
                     <span class="keyboard-accordion-icon">▼</span>
                   </div>
-                  <div id="navBody" class="keyboard-accordion-body">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px">
+                  <div id="hiddenBody" class="keyboard-accordion-body">
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px">
                       <button class="input-btn navigation" data-action="MOVE_LEFT" id="freestyleMoveLeft"></button>
                       <button class="input-btn navigation" data-action="MOVE_RIGHT" id="freestyleMoveRight"></button>
                       <button class="input-btn navigation" data-action="SELECT_LEFT" id="freestyleSelectLeft"></button>
@@ -1576,7 +1605,7 @@ input[type="file"]:hover {
         <div id="exportPage" class="page">
           <div class="panel">
             <h3>📤 Submit Progress</h3>
-            <h4 style="text-align: center;">Teacher Phone Number&nbsp;&nbsp;&nbsp;Student Phone Number</h4>
+            <h4 style="text-align: center;">Teacher Number&nbsp;&nbsp;&nbsp;Student Number</h4>
             <div style="align-items: center;justify-content: center;height:50px;margin-top: 5px;display:flex">
               <input type="text" style="font-size:1.2rem;text-align: center;" id="teacherPhoneNumber" placeholder="Enter phone number" value="+628161342820" />
               <input type="text" style="font-size:1.2rem;text-align: center;" id="student PhoneNumber" placeholder="Enter phone number" value="+628161342820" />
@@ -1671,7 +1700,8 @@ start: matrix_ops
    | abs_function
    | matrix
    | matrix_env
-   | "(" expr ")"
+   | "(" expr ")"              -> paren_expr
+   | "{" expr "}"              -> braces_expr
    | PI                        -> pi_symbol
    | INFTY                     -> infty_symbol
    | SYMBOL                    -> symbol
@@ -1770,6 +1800,12 @@ CIRC: "\\circ"
 
       @v_args(inline=True)
       class Latex2Sympy(Transformer):
+          def paren_expr(self, expr):
+              return expr
+
+          def braces_expr(self, expr):
+              return expr
+
           def number(self, tok):
               s = str(tok)
               return sp.Integer(s) if '.' not in s else sp.Float(s)
@@ -1849,8 +1885,21 @@ CIRC: "\\circ"
                   return sp.Mul(a, b, evaluate=False)
               return sp.Mul(a, b, evaluate=False)
 
-          def power(self, a, b=None):
-              return sp.Pow(a, b, evaluate=False) if b else a
+          def power(self, a, b):
+              """
+              Handle right-associative power like 10^100^0 correctly.
+              Lark gives us nested trees due to right recursion.
+              """
+              import sympy as sp
+
+              # If right child is another power, handle it recursively.
+              # Example: a=10, b=Pow(100, 0) -> Pow(10, (100**0))
+              if isinstance(b, sp.Pow):
+                  return sp.Pow(a, b, evaluate=False)
+
+              return sp.Pow(a, b, evaluate=False)
+
+
 
           # --- NEW METHOD FOR DEGREES ---
           def atom_to_degree(self, tree):
@@ -1931,6 +1980,7 @@ CIRC: "\\circ"
                       m[j-1, :] = temp
               return m
 
+            
           # --- METHODS FOR PREPROCESSED DERIVATIVES ---
           def derivative_func(self, var, expr):
               """Handles the preprocessed __derivative(var, expr) call."""
@@ -2902,7 +2952,7 @@ class ProblemSolverApp:
           accordion.classList.add("open")
 
           # Identify if this is the Navigation accordion
-          is_navigation = target_id == "navBody"
+          is_navigation = target_id == "numbersBody"
 
           # Move this accordion to the top of the accordion stack:
           # — find the first existing .keyboard-accordion child (ignore labels/header nodes),
@@ -2970,7 +3020,7 @@ class ProblemSolverApp:
           for i in range(all_accordions.length):
               acc = all_accordions[i]
               # Check if this accordion contains the navBody
-              if acc.querySelector('#navBody'):
+              if acc.querySelector('#numbersBody'):
                   nav_accordion = acc
                   break
 
@@ -5613,12 +5663,56 @@ class ProblemSolverApp:
             for blk in prob_desc_content:
                 if isinstance(blk, dict):
                     if blk.get("type") == "text":
-                        prob_desc_html += blk.get("value", "")
+                        # Handle text with newlines
+                        text_value = blk.get("value", "")
+                        prob_desc_html += text_value.replace('\n', '<br>')
+                    elif blk.get("type") == "line_break":
+                        # Handle explicit line breaks from exported content
+                        prob_desc_html += "<br>"
+                    elif blk.get("type") == "image":
+                        # Handle images with size preservation
+                        image_src = blk.get("src", "")
+                        if image_src:
+                            # Get image metadata
+                            alt_text = blk.get("alt", "")
+                            size_class = blk.get("size_class", "medium")
+                            
+                            # Size-specific styling
+                            size_styles = {
+                                "small": "max-width: 80px; max-height: 60px;",
+                                "medium": "max-width: 160px; max-height: 120px;",
+                                "large": "max-width: 240px; max-height: 180px;",
+                                "xlarge": "max-width: 320px; max-height: 240px;",
+                                "full": "max-width: 100%; height: auto;"
+                            }
+                            
+                            size_style = size_styles.get(size_class, size_styles["medium"])
+                            
+                            window.console.log(f"📏 Problem desc - rendering image with size class: {size_class}")
+                            
+                            # Create image HTML with proper styling and size preservation
+                            img_style = f"display: inline-block; margin: 4px; vertical-align: middle; border-radius: 4px; object-fit: contain; {size_style}"
+                            
+                            prob_desc_html += f'''
+                            <img src="{html.escape(image_src)}" 
+                                 class="img-inline size-{size_class}"
+                                 alt="{html.escape(alt_text)}" 
+                                 style="{img_style}"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                            <span style="display:none; color:#ef4444; font-size:12px;">
+                                📷 Image failed to load
+                            </span>
+                            '''
+                        else:
+                            prob_desc_html += '<span style="color:#6b7280; font-style:italic;">[Image placeholder]</span>'
                     elif blk.get("type") == "math":
                         latex_content = blk.get('latex', '')
-
-                        # Handle matrix formats...
+                        window.console.log(f"Problem desc: Raw latex_content = {latex_content}, type = {type(latex_content)}")
+                        
+                        # Check if it's a Python list (direct list object)
                         if isinstance(latex_content, (list, tuple)):
+                            window.console.log(f"Problem desc: Direct list matrix")
                             rows = []
                             for row in latex_content:
                                 if isinstance(row, (list, tuple)):
@@ -5627,12 +5721,20 @@ class ProblemSolverApp:
                                     rows.append(str(row))
                             latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
                             prob_desc_html += f"$${latex_matrix}$$"
-                        elif isinstance(latex_content, str) and r"\left[" in latex_content:
+                        
+                        # Check if string contains matrix pattern with \left[ wrappers
+                        elif isinstance(latex_content, str) and r"\left[" in latex_content and r"\right]" in latex_content:
+                            window.console.log(f"Problem desc: String with LaTeX matrix wrappers")
                             import re
+                            # Remove \left[ and \right] and extract the content
                             cleaned = latex_content.replace(r"\left[", "[").replace(r"\right]", "]")
+                            window.console.log(f"Problem desc: Cleaned = {cleaned}")
+                            
+                            # Try to find [[...]] pattern
                             matrix_match = re.search(r'\[\[.*?\]\]', cleaned)
                             if matrix_match:
                                 matrix_str = matrix_match.group(0)
+                                window.console.log(f"Problem desc: Found matrix string = {matrix_str}")
                                 try:
                                     import json
                                     matrix_data = json.loads(matrix_str)
@@ -5643,17 +5745,42 @@ class ProblemSolverApp:
                                         else:
                                             rows.append(str(row))
                                     latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                    window.console.log(f"Problem desc: Converted to LaTeX = {latex_matrix}")
+                                    
+                                    # Check if there's additional content after the matrix
                                     remaining = cleaned.replace(matrix_str, "", 1)
                                     prob_desc_html += f"$${latex_matrix}{remaining}$$"
-                                except:
+                                except Exception as e:
+                                    window.console.error(f"Problem desc: JSON parse failed: {e}")
                                     prob_desc_html += f"\\({latex_content}\\)"
                             else:
+                                # No matrix pattern found, use as-is
                                 prob_desc_html += f"\\({latex_content}\\)"
+                        
+                        # Check if plain string starts with [[
+                        elif isinstance(latex_content, str) and latex_content.strip().startswith('[['):
+                            window.console.log(f"Problem desc: Plain JSON matrix string")
+                            try:
+                                import json
+                                matrix_data = json.loads(latex_content)
+                                rows = []
+                                for row in matrix_data:
+                                    rows.append(" & ".join(str(x) for x in row))
+                                latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
+                                prob_desc_html += f"$${latex_matrix}$$"
+                            except Exception as e:
+                                window.console.error(f"Problem desc: matrix parse error: {e}")
+                                prob_desc_html += f"\\({latex_content}\\)"
+                        
                         else:
+                            # Regular LaTeX string
+                            window.console.log(f"Problem desc: Regular LaTeX")
                             prob_desc_html += f"\\({latex_content}\\)"
         elif isinstance(prob_desc_content, str):
-            prob_desc_html = prob_desc_content
-
+            # Plain string description
+            # Handle multiple lines in description
+            prob_desc_html = prob_desc_content.replace('\n', '<br>')
+    
     desc_div.innerHTML = title_html + prob_desc_html
     container.appendChild(desc_div)
 
@@ -5717,7 +5844,52 @@ class ProblemSolverApp:
         desc_html = ""
         for blk in step_desc:
             if blk["type"] == "text":
-                desc_html += blk["value"]
+                # Handle multiple lines in step text blocks
+                text_value = blk["value"]
+                desc_html += text_value.replace('\n', '<br>')
+            elif blk["type"] == "image":
+                # Handle images in step descriptions with size preservation
+                image_src = blk.get("src", "")
+                if image_src:
+                    # Get image metadata if available
+                    alt_text = blk.get("alt", "")
+                    is_embedded = blk.get("is_embedded", False)
+                    
+                    # Get preserved size class
+                    size_class = blk.get("size_class", "medium")
+                    
+                    # Apply size-specific styling
+                    size_styles = {
+                        "small": "max-width: 80px; max-height: 60px;",
+                        "medium": "max-width: 160px; max-height: 120px;",
+                        "large": "max-width: 240px; max-height: 180px;",
+                        "xlarge": "max-width: 320px; max-height: 240px;",
+                        "full": "max-width: 100%; height: auto;"
+                    }
+                    
+                    size_style = size_styles.get(size_class, size_styles["medium"])
+                    
+                    # Create image HTML with proper styling and size preservation
+                    img_style = f"display: inline-block; margin: 4px; vertical-align: middle; border-radius: 4px; object-fit: contain; {size_style}"
+                    
+                    window.console.log(f"📏 Rendering step image with size class: {size_class}")
+                    
+                    desc_html += f'''
+                    <img src="{html.escape(image_src)}" 
+                         class="img-inline size-{size_class}"
+                         alt="{html.escape(alt_text)}" 
+                         style="{img_style}"
+                         loading="lazy"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span style="display:none; color:#ef4444; font-size:12px;">
+                        📷 Image failed to load
+                    </span>
+                    '''
+                else:
+                    desc_html += '<span style="color:#6b7280; font-style:italic;">[Image placeholder]</span>'
+            elif blk["type"] == "line_break":
+                # Handle line breaks in step descriptions
+                desc_html += "<br>"
             elif blk["type"] == "math":
                 latex_content = blk.get('latex', '')
 
@@ -5791,8 +5963,8 @@ class ProblemSolverApp:
           </div>
           <div style='margin-top:8px;'>
             <div style='font-weight:600;margin-bottom:4px;font-size:13px;'>Input Buttons:</div>
-            <div class='button-grid' style='display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin:0;padding:0;'>
-              <button class='input-btn keyboard-activate' data-action='ACTIVATE_KEYBOARD' title='Activate Keyboard' style='grid-column:span 2;'>{keyboard_svg}<span style='font-size:11px;margin-top:2px;'>Keyboard</span></button>
+            <div class='button-grid' style='display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:0;padding:0;'>
+              <button class='input-btn keyboard-activate' data-action='ACTIVATE_KEYBOARD' title='Activate Keyboard' style='grid-column:span 3;'>{keyboard_svg}<span style='font-size:11px;margin-top:2px;'>Keyboard</span></button>
               <button class='input-btn keyboard-lock' data-action='DEACTIVATE_KEYBOARD' title='Lock Keyboard' style='grid-column:span 2;'>{lock_svg}<span style='font-size:11px;margin-top:2px;'>Lock</span></button>
               {button_html}
             </div>
@@ -5890,358 +6062,6 @@ class ProblemSolverApp:
     self.save_to_storage()
 
     window.console.log(f"📂 === LOAD_PROBLEM completed for problem {index} ===")
-
-  def load_problem2(self, index, container):
-      """Load a problem and restore its state"""
-
-      # ✅ SET CURRENT INDEX IMMEDIATELY
-      window.console.log(f"Loading problem {index}, previous was {self.current_problem_index}")
-      self.current_problem_index = index
-
-      prob = self.problem_set[index]
-      steps = prob.get("steps", [])
-
-      container.innerHTML = ""
-
-      # Description - display both title and description content at problem level
-      desc_div = document.createElement("div")
-      desc_div.className = "problem-description"
-      desc_div.style.cssText = "background:#f0f9ff;padding:16px;border-radius:8px;margin-bottom:16px;"
-
-      # Add title
-      title_html = f"<h4 style='margin:0 0 12px 0;'>{html.escape(prob.get('title', 'Problem'))}</h4>"
-
-      # Add problem description content if it exists
-      prob_desc_content = prob.get("description", "")
-      prob_desc_html = ""
-
-      if prob_desc_content:
-          window.console.log(f"Problem description type: {type(prob_desc_content)}")
-          # Check if description is a list of blocks (like step descriptions)
-          if isinstance(prob_desc_content, (list, tuple)):
-              for blk in prob_desc_content:
-                  if isinstance(blk, dict):
-                      if blk.get("type") == "text":
-                          prob_desc_html += blk.get("value", "")
-                      elif blk.get("type") == "math":
-                          latex_content = blk.get('latex', '')
-
-                          window.console.log(f"Problem desc: Raw latex_content = {latex_content}, type = {type(latex_content)}")
-
-                          # Check if it's a Python list (direct list object)
-                          if isinstance(latex_content, (list, tuple)):
-                              window.console.log(f"Problem desc: Direct list matrix")
-                              rows = []
-                              for row in latex_content:
-                                  if isinstance(row, (list, tuple)):
-                                      rows.append(" & ".join(str(x) for x in row))
-                                  else:
-                                      rows.append(str(row))
-                              latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                              prob_desc_html += f"$${latex_matrix}$$"
-
-                          # Check if string contains matrix pattern with \left[ wrappers
-                          elif isinstance(latex_content, str) and r"\left[" in latex_content and r"\right]" in latex_content:
-                              window.console.log(f"Problem desc: String with LaTeX matrix wrappers")
-                              import re
-                              # Remove \left[ and \right] and extract the content
-                              cleaned = latex_content.replace(r"\left[", "[").replace(r"\right]", "]")
-                              window.console.log(f"Problem desc: Cleaned = {cleaned}")
-
-                              # Try to find [[...]] pattern
-                              matrix_match = re.search(r'\[\[.*?\]\]', cleaned)
-                              if matrix_match:
-                                  matrix_str = matrix_match.group(0)
-                                  window.console.log(f"Problem desc: Found matrix string = {matrix_str}")
-                                  try:
-                                      import json
-                                      matrix_data = json.loads(matrix_str)
-                                      rows = []
-                                      for row in matrix_data:
-                                          if isinstance(row, (list, tuple)):
-                                              rows.append(" & ".join(str(x) for x in row))
-                                          else:
-                                              rows.append(str(row))
-                                      latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                                      window.console.log(f"Problem desc: Converted to LaTeX = {latex_matrix}")
-
-                                      # Check if there's additional content after the matrix
-                                      remaining = cleaned.replace(matrix_str, "", 1)
-                                      prob_desc_html += f"$${latex_matrix}{remaining}$$"
-                                  except Exception as e:
-                                      window.console.error(f"Problem desc: JSON parse failed: {e}")
-                                      prob_desc_html += f"\\({latex_content}\\)"
-                              else:
-                                  # No matrix pattern found, use as-is
-                                  prob_desc_html += f"\\({latex_content}\\)"
-
-                          # Check if plain string starts with [[
-                          elif isinstance(latex_content, str) and latex_content.strip().startswith('[['):
-                              window.console.log(f"Problem desc: Plain JSON matrix string")
-                              try:
-                                  import json
-                                  matrix_data = json.loads(latex_content)
-                                  rows = []
-                                  for row in matrix_data:
-                                      rows.append(" & ".join(str(x) for x in row))
-                                  latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                                  prob_desc_html += f"$${latex_matrix}$$"
-                              except Exception as e:
-                                  window.console.error(f"Problem desc: matrix parse error: {e}")
-                                  prob_desc_html += f"\\({latex_content}\\)"
-
-                          else:
-                              # Regular LaTeX string
-                              window.console.log(f"Problem desc: Regular LaTeX")
-                              prob_desc_html += f"\\({latex_content}\\)"
-          elif isinstance(prob_desc_content, str):
-              # Plain string description
-              prob_desc_html = prob_desc_content
-
-      desc_div.innerHTML = title_html + prob_desc_html
-      container.appendChild(desc_div)
-
-      # ✅ ADD GLOBAL HISTORY CONTAINER HERE
-      # Global attempt history container
-      global_history_div = document.createElement("div")
-      global_history_div.id = f"globalHistory_{index}"
-      global_history_div.className = "panel"
-      global_history_div.style.cssText = "background:#f8fafc;margin-bottom:16px;display:none;"
-      global_history_div.innerHTML = "<div style='font-weight:700;margin-bottom:10px;font-size:16px;'>📝 All Attempts History:</div>"
-      container.appendChild(global_history_div)
-
-      # Clear global history for this problem
-      self.global_attempt_history = []
-
-      self.solve_state = []
-
-      for step_idx, step_data in enumerate(steps):
-          step_div = document.createElement("div")
-          step_div.className = "panel step"
-          step_div.style.display = "none"
-
-          step_desc = step_data.get("description", [])
-          desc_html = ""
-          for blk in step_desc:
-              if blk["type"] == "text":
-                  desc_html += blk["value"]
-              elif blk["type"] == "math":
-                  latex_content = blk.get('latex', '')
-
-                  window.console.log(f"Step {step_idx}: Raw latex_content = {latex_content}, type = {type(latex_content)}")
-
-                  # Check if it's a Python list (direct list object)
-                  if isinstance(latex_content, (list, tuple)):
-                      window.console.log(f"Step {step_idx}: Direct list matrix")
-                      rows = []
-                      for row in latex_content:
-                          if isinstance(row, (list, tuple)):
-                              rows.append(" & ".join(str(x) for x in row))
-                          else:
-                              rows.append(str(row))
-                      latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                      desc_html += f"$${latex_matrix}$$"
-
-                  # Check if string contains matrix pattern with \left[ wrappers
-                  elif isinstance(latex_content, str) and r"\left[" in latex_content and r"\right]" in latex_content:
-                      window.console.log(f"Step {step_idx}: String with LaTeX matrix wrappers")
-                      import re
-                      # Remove \left[ and \right] and extract the content
-                      cleaned = latex_content.replace(r"\left[", "[").replace(r"\right]", "]")
-                      window.console.log(f"Step {step_idx}: Cleaned = {cleaned}")
-
-                      # Try to find [[...]] pattern
-                      matrix_match = re.search(r'\[\[.*?\]\]', cleaned)
-                      if matrix_match:
-                          matrix_str = matrix_match.group(0)
-                          window.console.log(f"Step {step_idx}: Found matrix string = {matrix_str}")
-                          try:
-                              import json
-                              matrix_data = json.loads(matrix_str)
-                              rows = []
-                              for row in matrix_data:
-                                  if isinstance(row, (list, tuple)):
-                                      rows.append(" & ".join(str(x) for x in row))
-                                  else:
-                                      rows.append(str(row))
-                              latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                              window.console.log(f"Step {step_idx}: Converted to LaTeX = {latex_matrix}")
-
-                              # Check if there's additional content after the matrix (like \cdot3)
-                              remaining = cleaned.replace(matrix_str, "", 1)
-                              desc_html += f"$${latex_matrix}{remaining}$$"
-                          except Exception as e:
-                              window.console.error(f"Step {step_idx}: JSON parse failed: {e}")
-                              desc_html += f"\\({latex_content}\\)"
-                      else:
-                          # No matrix pattern found, use as-is
-                          desc_html += f"\\({latex_content}\\)"
-
-                  # Check if plain string starts with [[
-                  elif isinstance(latex_content, str) and latex_content.strip().startswith('[['):
-                      window.console.log(f"Step {step_idx}: Plain JSON matrix string")
-                      try:
-                          import json
-                          matrix_data = json.loads(latex_content)
-                          rows = []
-                          for row in matrix_data:
-                              rows.append(" & ".join(str(x) for x in row))
-                          latex_matrix = r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-                          desc_html += f"$${latex_matrix}$$"
-                      except Exception as e:
-                          window.console.error(f"Step {step_idx}: matrix parse error: {e}")
-                          desc_html += f"\\({latex_content}\\)"
-
-                  else:
-                      # Regular LaTeX string
-                      window.console.log(f"Step {step_idx}: Regular LaTeX")
-                      desc_html += f"\\({latex_content}\\)"
-
-          window.console.log(f"Step {step_idx} final desc_html: {desc_html}")
-
-          # ⭐ GENERATE MINIMAL BUTTONS
-          button_html = self.generate_minimal_buttons(step_data)
-
-          # Generate SVG icons for keyboard buttons
-          keyboard_svg = self.get_keyboard_svg("32")
-          lock_svg = self.get_lock_svg("32")
-
-          step_div.innerHTML = f"""
-          <div style='font-weight:700;margin-bottom:6px;'>Step {step_idx+1} of {len(steps)}</div>
-          <div class='step-description'>{desc_html}</div>
-          <div style='margin-top:8px;'>
-            <div style='font-weight:700;margin-bottom:4px;'>Your Answer:</div>
-            <div style='overflow-x:auto;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:2px solid #e6eef8;border-radius:8px;padding:10px;background:#fff;'>
-              <div class='math-input step-answer'></div>
-            </div>
-            <div style='margin-top:8px;'>
-              <div style='font-weight:600;margin-bottom:4px;font-size:13px;'>Input Buttons:</div>
-              <div class='button-grid' style='display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin:0;padding:0;'>
-                <button class='input-btn keyboard-activate' data-action='ACTIVATE_KEYBOARD' title='Activate Keyboard' style='grid-column:span 2;'>{keyboard_svg}<span style='font-size:11px;margin-top:2px;'>Keyboard</span></button>
-                <button class='input-btn keyboard-lock' data-action='DEACTIVATE_KEYBOARD' title='Lock Keyboard' style='grid-column:span 2;'>{lock_svg}<span style='font-size:11px;margin-top:2px;'>Lock</span></button>
-                {button_html}
-              </div>
-            </div>
-            <div style='display:flex;flex-direction:column;gap:6px;margin-top:8px;'>
-              <button class='btn submitAnswer'>Submit Answer</button>
-              <button class='btn ghost finalizeStep' disabled>Finalize Step</button>
-              <button class='btn nextStep' style='display:none;background:#10b981;'>Next Step →</button>
-            </div>
-          </div>
-          <div class='step-feedback'></div>
-          <div class='attempts-history' style='display:none;'></div>
-          """
-          container.appendChild(step_div)
-
-          # Initialize MathQuill
-          if self.MQ:
-              answer_field = self.MQ.MathField(step_div.querySelector(".step-answer"))
-
-              """
-              # GLOBALLY DISABLE TEXTAREA TO PREVENT ANDROID KEYBOARD
-              try:
-                  el = answer_field.el()
-                  textarea = el.querySelector('textarea')
-                  if textarea:
-                      # Make textarea permanently non-interactive
-                      textarea.setAttribute('readonly', 'readonly')
-                      textarea.setAttribute('disabled', 'disabled')
-                      textarea.style.pointerEvents = 'none'
-                      textarea.style.opacity = '0'
-                      textarea.style.position = 'absolute'
-                      textarea.style.left = '-9999px'
-
-                      # Prevent all focus events
-                      def prevent_focus_handler(e):
-                          textarea.blur()
-                      textarea.addEventListener('focus', create_proxy(prevent_focus_handler), True)
-              except Exception as e:
-                  window.console.log(f"Error disabling textarea: {e}")
-              """
-          else:
-              answer_field = None
-
-          step_obj = {
-              "step": step_data,
-              "container": step_div,
-              "answer_mf": answer_field,
-              "attempts": 0,
-              "attempt_history": [],
-              "correct": False,
-              "finalized": False,
-              "step_start_time": window.Date.now()
-          }
-
-          # Restore state if exists
-          if index in self.problem_states and step_idx < len(self.problem_states[index]):
-              saved = self.problem_states[index][step_idx]
-              step_obj.update(saved)
-              if saved.get("correct") and saved.get("attempt_history") and answer_field:
-                  for attempt in reversed(saved["attempt_history"]):
-                      if attempt.get("correct"):
-                          answer_field.latex(attempt.get("answer_latex", ""))
-                          break
-
-          self.solve_state.append(step_obj)
-
-          # Add event listeners
-          submit_btn = step_div.querySelector(".submitAnswer")
-          finalize_btn = step_div.querySelector(".finalizeStep")
-          next_btn = step_div.querySelector(".nextStep")
-
-          if submit_btn:
-              submit_btn.addEventListener("click", create_proxy(lambda e, i=step_idx: self.submit_answer(e, i)))
-          if finalize_btn:
-              finalize_btn.addEventListener("click", create_proxy(lambda e, i=step_idx: self.finalize_step(e, i)))
-          if next_btn:
-              next_btn.addEventListener("click", create_proxy(lambda e, i=step_idx: self.next_step(e, i)))
-
-          # ⭐ ADD INPUT BUTTON LISTENERS
-          input_btns = step_div.querySelectorAll(".input-btn")
-          for btn_idx in range(input_btns.length):
-              btn = input_btns[btn_idx]
-              action = btn.getAttribute("data-action")
-
-              # FIX: Create closure with step_idx only, don't pass answer_field
-              def make_input_handler(s_idx, act):
-                  def handler(e):
-                      # Pass step_idx and action, the method will get the field from solve_state
-                      self.handle_input_button(s_idx, act, None)  # Pass None for answer_field
-                  return handler
-
-              btn.addEventListener("click", create_proxy(make_input_handler(step_idx, action)))
-
-      # Show first unfinished step
-      for i, step in enumerate(self.solve_state):
-          if not step.get("finalized", False):
-              self.show_step(i)
-              break
-      else:
-          self.show_step(0)
-
-      # ⭐ RENDER MATHJAX FOR ALL DESCRIPTIONS
-      def render_mathjax():
-          if hasattr(window, 'MathJax'):
-              try:
-                  if hasattr(window.MathJax, 'typesetPromise'):
-                      window.MathJax.typesetPromise([container])
-                      window.console.log("✅ MathJax typesetPromise called")
-                  elif hasattr(window.MathJax, 'typeset'):
-                      window.MathJax.typeset([container])
-                      window.console.log("✅ MathJax typeset called")
-                  elif hasattr(window.MathJax, 'Hub'):
-                      window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub, container])
-                      window.console.log("✅ MathJax Hub.Queue called")
-              except Exception as e:
-                  window.console.error(f"❌ MathJax error: {e}")
-          else:
-              window.console.error("❌ MathJax not available")
-
-      # Delay rendering to ensure DOM is ready
-      window.setTimeout(create_proxy(render_mathjax), 200)
-
-      self.save_to_storage()
-
   def show_step(self, idx):
       """Show a step by index"""
       if idx >= len(self.solve_state):

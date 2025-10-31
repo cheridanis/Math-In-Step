@@ -3933,6 +3933,7 @@ class ProblemSolverApp:
 
   def freestyle_finalize(self, event):
       """Finalize the freestyle solution and compare structure"""
+      msg = ""
       if not self.freestyle_correct:
           window.alert("⚠️ Submit a correct answer first")
           return
@@ -3979,48 +3980,55 @@ class ProblemSolverApp:
           simplest_struct = None
 
       # Build feedback
-      if same_structure:
-          msg = "✅ Perfect! Your solution method matches the original problem structure."
-          color = "#059669"
-      else:
-          msg = f"""
-          ⚠️ Different structure detected.<br><br>
-          <strong>Your structure:</strong><br>
-          Operations: {user_struct.get('operators', {})}<br>
-          Values: {user_struct.get('operands', {})}<br><br>
-          <strong>Original problem structure:</strong><br>
-          Operations: {problem_struct.get('operators', {})}<br>
-          Values: {problem_struct.get('operands', {})}
-          """
-          color = "#f59e0b"
+      #if same_structure:
+      #    msg = "✅ Perfect! Your solution method matches the original problem structure."
+      #    color = "#059669"
+      #else:
+      #    msg = f"""
+      #    ⚠️ Different structure detected.<br><br>
+      #    <strong>Your structure:</strong><br>
+      #    Operations: {user_struct.get('operators', {})}<br>
+      #    Values: {user_struct.get('operands', {})}<br><br>
+      #    """
+      #    color = "#f59e0b"
 
       if simplest_latex and simplest_struct:
           same_as_simplest_ops = user_struct["operators"] == simplest_struct["operators"]
           same_as_simplest_vals = user_struct["operands"] == simplest_struct["operands"]
           same_as_simplest = same_as_simplest_ops and same_as_simplest_vals
 
-          msg += f"""<br><br>
-          <strong>Simplest form:</strong> \\({simplest_latex}\\)<br>
+          msg += f"""
           <strong>Simplest structure:</strong><br>
           Operations: {simplest_struct.get('operators', {})}<br>
           Values: {simplest_struct.get('operands', {})}
           """
 
           if same_as_simplest:
-              msg += "<br><br>🎯 <strong>Your solution matches the simplest form!</strong>"
+              msg += """<br><br>✅ <strong>Perfect! Your solution matches the simplest form!</strong>"""
+              msg += f"""<br>
+          <strong>Simplest form:</strong> \\({simplest_latex}\\)"""
               color = "#059669"
+              # Disable buttons
+              finalize_btn = document.querySelector("#freestyleFinalize")
+              if finalize_btn:
+                  finalize_btn.disabled = True
+
+              submit_btn = document.querySelector("#freestyleSubmit")
+              if submit_btn:
+                  submit_btn.disabled = True
+          else:
+            msg += f"""<br><br>
+            <strong>⚠️ Different structure detected.</strong><br><br>
+            <strong>Your structure:</strong><br>
+            Operations: {user_struct.get('operators', {})}<br>
+            Values: {user_struct.get('operands', {})}<br><br>
+            """
+            color = "#f59e0b"
 
       self.freestyle_finalized = True
       self.show_freestyle_feedback(msg, color)
 
-      # Disable buttons
-      finalize_btn = document.querySelector("#freestyleFinalize")
-      if finalize_btn:
-          finalize_btn.disabled = True
-
-      submit_btn = document.querySelector("#freestyleSubmit")
-      if submit_btn:
-          submit_btn.disabled = True
+      
 
       # Re-render MathJax
       feedback = document.querySelector("#freestyleFeedback")

@@ -1815,11 +1815,10 @@ from pyscript import document, window
 from pyodide.ffi import create_proxy
 import json, html, re, base64, uuid
 
-# Consolidated Math Parser
 class MathParser:
-  """Handles LaTeX parsing with improved grammar and structure extraction"""
+    """Handles LaTeX parsing, structural comparison, and error popups"""
 
-  GRAMMAR = r"""
+    GRAMMAR = r"""
 start: matrix_ops
    | expr
 
@@ -1839,8 +1838,8 @@ start: matrix_ops
        | power
 
 ?power: "-" power                -> neg
-    | atom "^" power           -> power
     | atom_degree              -> atom_to_degree
+    | atom "^" power           -> power
     | atom
 
 ?atom: NUMBER                    -> number
@@ -1877,10 +1876,8 @@ fraction: "\\frac" "{" expr "}" "{" expr "}" -> frac
 abs_function: "\\left" "|" expr "\\right" "|"     -> abs_func
           | "|" expr "|"                          -> abs_func
 
-# --- NEW (CORRECT) RULE ---
 atom_degree: atom "^" degree_expr
 
-# --- ADD THIS NEW RULE ---
 degree_expr: "{" CIRC "}"
 
 matrix: "[" matrix_rows "]" -> matrix_rows
@@ -1910,660 +1907,718 @@ op: "+" | "-"
 TRIG_NAME.2: "\\sin" | "\\cos" | "\\tan" | "\\cot" | "\\sec" | "\\csc"
          | "\\arcsin" | "\\arccos" | "\\arctan"
 LOG_NAME.2: "\\log" | "\\ln" | "\\exp"
+LIM.2: "\\lim"
 NUMBER: /[+-]?\d+(\.\d*)?|\.\d+/
 INT: /\d+/
 PI.2: "\\pi"
 INFTY.2: "\\infty"
-SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|lvert|rvert)(?![a-zA-Z0-9_]))[a-zA-Z][a-zA-Z0-9_]*/
+SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|lvert|rvert)(?![a-zA-Z0-9]))[a-zA-Z][a-zA-Z0-9]*/
 CIRC: "\\circ"
 
 %import common.WS_INLINE
 %ignore WS_INLINE
 """
+    
+    def __init__(self):
+        from lark import Lark
+        self.parser = Lark(self.GRAMMAR, parser="earley", start="start")
+        self.transformer = self._create_transformer()
 
-  def __init__(self):
-      from lark import Lark
-      self.parser = Lark(self.GRAMMAR, parser="earley", start="start")
-      self.transformer = self._create_transformer()
+    def _preprocess_derivatives(self, latex_str):
+        """
+        Rewrites \frac{d}{dx}(...) and \frac{\partial}{\partial x}(...)
+        patterns into unique function calls before parsing.
+        """
+        import re
 
-  def _preprocess_derivatives(self, latex_str):
-    """
-    Rewrites \frac{d}{dx}(...) and \frac{\partial}{\partial x}(...)
-    patterns into unique function calls before parsing.
-    """
-    import re
+        # 1. Handle total derivatives: \frac{d}{dx}(...)
+        total_derivative_pattern = re.compile(r"\\frac\{d\}\{d([a-zA-Z]+)\}\(([^)]+)\)")
+        total_replacement = r"__derivative(\1, \2)"
+        processed_str = total_derivative_pattern.sub(total_replacement, latex_str)
 
-    # 1. Handle total derivatives: \frac{d}{dx}(...)
-    total_derivative_pattern = re.compile(r"\\frac\{d\}\{d([a-zA-Z]+)\}\(([^)]+)\)")
-    total_replacement = r"__derivative(\1, \2)"
-    processed_str = total_derivative_pattern.sub(total_replacement, latex_str)
+        # 2. Handle partial derivatives: \frac{\partial}{\partial x}(...)
+        # This regex is slightly different to handle the \partial command and optional space.
+        partial_derivative_pattern = re.compile(r"\\frac\{\\partial\}\{\\partial\s*([a-zA-Z]+)\}\(([^)]+)\)")
+        partial_replacement = r"__partial_derivative(\1, \2)"
+        final_str = partial_derivative_pattern.sub(partial_replacement, processed_str)
 
-    # 2. Handle partial derivatives: \frac{\partial}{\partial x}(...)
-    # This regex is slightly different to handle the \partial command and optional space.
-    partial_derivative_pattern = re.compile(r"\\frac\{\\partial\}\{\\partial\s*([a-zA-Z]+)\}\(([^)]+)\)")
-    partial_replacement = r"__partial_derivative(\1, \2)"
-    final_str = partial_derivative_pattern.sub(partial_replacement, processed_str)
+        return final_str
 
-    return final_str
+    def _show_error_popup(self, message):
+        """Display error popup with close button - optimized for mobile"""
+        safe_msg = message.replace("`", "'").replace("\\", "\\\\").replace("\n", "\\n")
+        js_code = f"""
+            (function(){{
+                let existing = document.querySelector('#parseErrorPopup');
+                if(existing) existing.remove();
 
-  def _create_transformer(self):
-      """Create the Lark transformer with improved rules"""
-      from lark import Transformer, v_args
-      import sympy as sp
+                let popup = document.createElement('div');
+                popup.id = 'parseErrorPopup';
 
-      @v_args(inline=True)
-      class Latex2Sympy(Transformer):
-          def paren_expr(self, expr):
-              return expr
+                // Detect if mobile/small screen
+                let isMobile = window.innerWidth <= 768;
 
-          def braces_expr(self, expr):
-              return expr
+                if(isMobile) {{
+                    // Mobile styles - fullscreen-like
+                    popup.style.cssText = `
+                        position:fixed;
+                        top:0;
+                        left:0;
+                        right:0;
+                        bottom:0;
+                        background:#f8fafc;
+                        color:#0f172a;
+                        font-family:monospace;
+                        padding:60px 16px 16px 16px;
+                        border:none;
+                        border-radius:0;
+                        box-shadow:none;
+                        white-space:pre-wrap;
+                        z-index:9999;
+                        overflow:auto;
+                        -webkit-overflow-scrolling:touch;
+                    `;
+                }} else {{
+                    // Desktop styles - centered dialog
+                    popup.style.cssText = `
+                        position:fixed;
+                        top:50%;
+                        left:50%;
+                        transform:translate(-50%, -50%);
+                        background:#f8fafc;
+                        color:#0f172a;
+                        font-family:monospace;
+                        padding:24px 24px 16px 24px;
+                        border:2px solid #ef4444;
+                        border-radius:12px;
+                        box-shadow:0 12px 40px rgba(0,0,0,0.2);
+                        white-space:pre;
+                        z-index:9999;
+                        max-width:650px;
+                        max-height:70vh;
+                        overflow:auto;
+                    `;
+                }}
 
-          def number(self, tok):
-              s = str(tok)
-              return sp.Integer(s) if '.' not in s else sp.Float(s)
+                let btn = document.createElement('button');
+                btn.textContent = '✖';
+                btn.title = 'Close';
 
-          def symbol(self, tok):
-              s = str(tok).strip()
-              return sp.Symbol(s[1:] if s.startswith("\\") else s)
+                if(isMobile) {{
+                    // Mobile close button - larger and top-left
+                    btn.style.cssText = `
+                        position:fixed;
+                        top:12px;
+                        right:12px;
+                        width:44px;
+                        height:44px;
+                        border:none;
+                        background:#ef4444;
+                        color:#fff;
+                        font-size:24px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        line-height:1;
+                        border-radius:8px;
+                        box-shadow:0 4px 12px rgba(239,68,68,0.4);
+                        z-index:10000;
+                    `;
+                }} else {{
+                    // Desktop close button - small and subtle
+                    btn.style.cssText = `
+                        position:absolute;
+                        top:8px;
+                        right:10px;
+                        border:none;
+                        background:transparent;
+                        color:#ef4444;
+                        font-size:18px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        line-height:1;
+                    `;
+                }}
+                btn.onclick = () => popup.remove();
 
-          def pi_symbol(self, _):
-              return sp.pi
+                let title = document.createElement('div');
+                title.textContent = '⚠️ Parse Error';
 
-          def infty_symbol(self, _):
-              return sp.oo
+                if(isMobile) {{
+                    title.style.cssText = `
+                        font-size:22px;
+                        font-weight:bold;
+                        color:#ef4444;
+                        margin-bottom:16px;
+                        padding-right:50px;
+                    `;
+                }} else {{
+                    title.style.cssText = `
+                        font-size:18px;
+                        font-weight:bold;
+                        color:#ef4444;
+                        margin-bottom:12px;
+                    `;
+                }}
 
-          def infinity(self, tok):
-              s = str(tok)
-              return -sp.oo if s.startswith('-') else sp.oo
+                let content = document.createElement('div');
+                content.textContent = `{safe_msg}`;
 
-          def abs_func(self, expr):
-              return sp.Abs(expr)
+                if(isMobile) {{
+                    content.style.cssText = `
+                        font-size:14px;
+                        line-height:1.6;
+                        word-break:break-word;
+                        padding-top:8px;
+                    `;
+                }} else {{
+                    content.style.cssText = `
+                        padding-top:8px;
+                    `;
+                }}
 
-          def neg(self, v):
-              return sp.Mul(-1, v, evaluate=False)
+                popup.appendChild(btn);
+                popup.appendChild(title);
+                popup.appendChild(content);
+                document.body.appendChild(popup);
+            }})();
+        """
+        window.eval(js_code)
 
-          def add(self, a, b):
-              return sp.Add(a, b, evaluate=False)
-
-          def sub(self, a, b):
-              return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
-
-          def mul(self, a, b):
-              if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) or isinstance(b, (sp.MatrixBase, sp.MatrixExpr)):
-                  a_ = sp.UnevaluatedExpr(a) if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) else a
-                  b_ = sp.UnevaluatedExpr(b) if isinstance(b, (sp.MatrixBase, sp.MatrixExpr)) else b
-                  return sp.Mul(a_, b_, evaluate=False)
-              return sp.Mul(a, b, evaluate=True)
-
-          def div(self, a, b):
-              return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
-
-          def frac(self, numerator, denominator):
-              return sp.Mul(numerator, sp.Pow(denominator, -1, evaluate=False), evaluate=False)
-
-          def trig_func(self, func_name, expr):
-              func_str = str(func_name).strip().replace("\\", "")
-              func_map = {
-                  "sin": sp.sin,
-                  "cos": sp.cos,
-                  "tan": sp.tan,
-                  "cot": sp.cot,
-                  "sec": sp.sec,
-                  "csc": sp.csc,
-                  "arcsin": sp.asin,
-                  "arccos": sp.acos,
-                  "arctan": sp.atan,
-              }
-              func = func_map.get(func_str)
-              if func:
-                  return func(expr)
-              return sp.Function(func_str)(expr)
-
-          def log_func(self, func_name, expr):
-              func_str = str(func_name).strip().replace("\\", "")
-              if func_str == "ln":
-                  return sp.ln(expr)
-              elif func_str == "log":
-                  return sp.log(expr, 10)
-              elif func_str == "exp":
-                  return sp.exp(expr)
-              return sp.Function(func_str)(expr)
-
-          def limit_expr(self, var, value, expr):
-              return sp.Limit(expr, sp.Symbol(str(var)), value)
-
-          def implicit_mul(self, a, b):
-              if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
-                  return sp.Mul(a, b, evaluate=False)
-              return sp.Mul(a, b, evaluate=False)
-
-          def power(self, a, b):
-              """
-              Handle right-associative power like 10^100^0 correctly.
-              Lark gives us nested trees due to right recursion.
-              """
-              import sympy as sp
-
-              # If right child is another power, handle it recursively.
-              # Example: a=10, b=Pow(100, 0) -> Pow(10, (100**0))
-              if isinstance(b, sp.Pow):
-                  return sp.Pow(a, b, evaluate=False)
-
-              return sp.Pow(a, b, evaluate=False)
-
-
-
-          # --- NEW METHOD FOR DEGREES ---
-          def atom_to_degree(self, tree):
-            """
-            Handles expressions like 90^\circ when called via an inline alias.
-            The 'tree' argument is the entire 'atom_degree' tree.
-            """
-            # The children of the 'atom_degree' tree are the 'atom' and 'degree_expr'
-            atom = tree.children[0]
-            # degree_expr = tree.children[1] # We don't need this
-
-            # Now perform the calculation
-            return sp.pi * atom / 180
-
-          def elements(self, *items):
-              return list(items)
-
-          def row(self, elements):
-              return list(elements) if isinstance(elements, (list, tuple)) else [elements]
-
-          def matrix_rows(self, *rows):
-              row_list = [list(r) if isinstance(r, (list, tuple)) else [r] for r in rows]
-              return sp.Matrix(row_list)
-
-          def matrix_env(self, *args):
-              rows = []
-              for a in args:
-                  if a is None:
-                      continue
-                  if isinstance(a, list) and a and all(isinstance(x, (list, tuple)) for x in a):
-                      rows.extend([list(r) for r in a])
-                  elif isinstance(a, (list, tuple)):
-                      rows.append(list(a))
-                  else:
-                      rows.append([a])
-              return sp.Matrix(rows)
-
-          def scalar_matrix_mul(self, scalar, matrix):
-              return sp.Mul(scalar, matrix, evaluate=False)
-
-          def row_reference(self, i):
-              return ("ref", int(i))
-
-          def row_scale(self, factor, i):
-              return ("scale", int(i), factor)
-
-          def row_replace(self, target, expr):
-              return ("replace", int(target), expr)
-
-          def row_swap(self, i, j):
-              return ("swap", int(i), int(j))
-
-          def row_combine(self, i, op, factor, j):
-              return ("combine", int(i), str(op), factor, int(j))
-
-          def matrix_apply_ops(self, matrix, *ops):
-              import sympy as sp
-              m = sp.Matrix(matrix) if not isinstance(matrix, sp.Matrix) else matrix
-              for op in ops:
-                  if op[0] == "replace":
-                      _, target, expr = op
-                      if isinstance(expr, tuple):
-                          if expr[0] == "ref":
-                              m[target-1, :] = m[expr[1]-1, :]
-                          elif expr[0] == "scale":
-                              _, i, factor = expr
-                              m[target-1, :] = factor * m[i-1, :]
-                          elif expr[0] == "combine":
-                              _, i, op_str, factor, j = expr
-                              if op_str == "+":
-                                  m[target-1, :] = m[i-1, :] + factor * m[j-1, :]
-                              else:
-                                  m[target-1, :] = m[i-1, :] - factor * m[j-1, :]
-                  elif op[0] == "swap":
-                      _, i, j = op
-                      temp = m[i-1, :].copy()
-                      m[i-1, :] = m[j-1, :]
-                      m[j-1, :] = temp
-              return m
-
-            
-          # --- METHODS FOR PREPROCESSED DERIVATIVES ---
-          def derivative_func(self, var, expr):
-              """Handles the preprocessed __derivative(var, expr) call."""
-              return sp.Derivative(expr, sp.Symbol(str(var)))
-
-          def partial_derivative_func(self, var, expr):
-              """Handles the preprocessed __partial_derivative(var, expr) call."""
-              return sp.Derivative(expr, sp.Symbol(str(var)))
-
-          def start(self, e):
-              return e
-
-      return Latex2Sympy()
-
-  def validate_limit(self, limit_expr):
+    def _preprocess_row_operations(self, latex_str):
       """
-      Validate if a limit problem is suitable for students.
-      Returns (is_valid, error_message)
-
-      Invalid cases:
-      1. Different left and right limit values (discontinuity)
-      2. Oscillating limits (e.g., sin(1/x) as x->0)
-      3. Limits that evaluate to infinity
+      Fix MathQuill's formatting of complex row operations.
+      Handles various patterns like fractions, negatives, and combinations.
       """
-      import sympy as sp
-
-      if not isinstance(limit_expr, sp.Limit):
-          return (True, None)  # Not a limit, skip validation
-
-      try:
-          # Get the limit components
-          expr = limit_expr.args[0]
-          var = limit_expr.args[1]
-          point = limit_expr.args[2]
-
-          # Evaluate the limit
-          limit_value = limit_expr.doit()
-
-          # Check 1: Limit evaluates to infinity
-          if limit_value.has(sp.oo) or limit_value == sp.oo or limit_value == -sp.oo:
-              return (False, f"Limit evaluates to infinity: {limit_value}")
-
-          # Check 2: Limit does not exist (returns unevaluated or NaN)
-          if isinstance(limit_value, sp.Limit) or limit_value is sp.nan:
-              return (False, "Limit does not exist or cannot be determined")
-
-          # Check 3: Different left and right limits (if approaching a finite point)
-          if point != sp.oo and point != -sp.oo:
-              try:
-                  left_limit = sp.limit(expr, var, point, '-')
-                  right_limit = sp.limit(expr, var, point, '+')
-
-                  # Simplify both limits
-                  left_simplified = sp.simplify(left_limit)
-                  right_simplified = sp.simplify(right_limit)
-
-                  # Check if they're different
-                  if not sp.simplify(left_simplified - right_simplified) == 0:
-                      return (False, f"Left and right limits differ: left={left_simplified}, right={right_simplified}")
-              except:
-                  pass
-
-          # Check 4: Oscillating behavior (limit doesn't exist due to oscillation)
-          # This is tricky - we check if the limit is AccumBounds or contains zoo
-          if hasattr(limit_value, 'is_finite') and not limit_value.is_finite:
-              if limit_value != sp.oo and limit_value != -sp.oo:
-                  return (False, "Limit oscillates or is undefined")
-
-          # Check for AccumBounds (accumulated bounds, indicates oscillation)
-          if 'AccumBounds' in str(type(limit_value)):
-              return (False, "Limit oscillates between multiple values")
-
-          # Check for zoo (complex infinity, often from oscillation)
-          if limit_value == sp.zoo:
-              return (False, "Limit is complex infinity (oscillation or undefined)")
-
-          return (True, None)
-
-      except Exception as e:
-          window.console.error(f"Error validating limit: {e}")
-          return (False, f"Error evaluating limit: {str(e)}")
-
-
-  def clean_latex(self, tex):
-      """Normalize LaTeX string for parsing"""
       import re
-      if not tex:
-          return ""
-      t = str(tex)
 
-      # Remove \left and \right but keep the parentheses
-      t = t.replace("\\left(", "(")
-      t = t.replace("\\right)", ")")
-      t = t.replace("\\left[", "[")
-      t = t.replace("\\right]", "]")
-      t = t.replace("\\left\\{", "{")
-      t = t.replace("\\right\\}", "}")
-      t = t.replace("\\left|", "|")
-      t = t.replace("\\right|", "|")
+      # 0. Convert LaTeX escaped spaces to regular spaces
+      latex_str = latex_str.replace(r'\ ', ' ')
 
-      # Replace mathrm{d} with d
-      t = t.replace("\\mathrm{d}", "d")
+      # 1. Clean up excessive parentheses first
+      latex_str = latex_str.replace(r'\left(', '(')
+      latex_str = latex_str.replace(r'\right)', ')')
+      latex_str = latex_str.replace(r'\left[', '[')
+      latex_str = latex_str.replace(r'\right]', ']')
+      latex_str = latex_str.replace(r'\left|', '|')
+      latex_str = latex_str.replace(r'\right|', '|')
 
-      # Remove spacing macros
-      t = re.sub(r"\\(?:,|;|:|!|quad|qquad| )", "", t)
+      # 2. Fix fractions with row reference in denominator (with optional parens around scalar)
+      latex_str = re.sub(r'\\frac\{([^{}]+)\}\{\(?(\d+)\)?R_(\d+)\}', r'(\1/\2)R_\3', latex_str)
 
-      # Remove whitespace
-      t = re.sub(r"\s+", "", t)
+      # 3. Fix fractions before row reference (with optional parens)
+      latex_str = re.sub(r'\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'(\1/\2)R_', latex_str)
 
-      return t.strip()
+      # 4. Handle negative fractions
+      latex_str = re.sub(r'-\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'(-\1/\2)R_', latex_str)
+
+      # 5. Fix fractions in combine operations
+      latex_str = re.sub(r'([+\-])\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'\1(\2/\3)R_', latex_str)
+
+      # 6. Remove outer wrapping parentheses from row scale expressions
+      latex_str = re.sub(r'\((\([^)]+\)R_\d+)\)', r'\1', latex_str)
+      latex_str = re.sub(r'\((R_\d+)\)', r'\1', latex_str)
+
+      # 7. Remove single-number parentheses before R_: (2)R_1 → 2R_1
+      latex_str = re.sub(r'\((\d+)\)R_', r'\1R_', latex_str)
+
+      # 7.5. Insert implicit coefficient 1 in row combinations: R_2-R_1 → R_2-1R_1
+      latex_str = re.sub(r'(R_\d+)\s*([+\-])\s*R_', r'\1\g<2>1R_', latex_str)
+
+      # 8. Ensure space after arrows for tokenization
+      latex_str = re.sub(r'\\to(?=\S)', r'\\to ', latex_str)
+      latex_str = re.sub(r'\\leftarrow(?=\S)', r'\\leftarrow ', latex_str)
+      latex_str = re.sub(r'\\leftrightarrow(?=\S)', r'\\leftrightarrow ', latex_str)
+
+      # 9. Remove extra pipes: || → |
+      latex_str = re.sub(r'\|{2,}', '|', latex_str)
+
+      # 10. Remove trailing pipe from row operations
+      latex_str = re.sub(r'\|\s*$', '', latex_str)
+
+      # 11. Handle cdot if used: \cdot → *
+      latex_str = latex_str.replace(r'\cdot', '*')
+
+      return latex_str
 
 
-  def _show_error_popup(self, message):
-      """Display error popup with close button - optimized for mobile"""
-      safe_msg = message.replace("`", "'").replace("\\", "\\\\").replace("\n", "\\n")
-      js_code = f"""
-          (function(){{
-              let existing = document.querySelector('#parseErrorPopup');
-              if(existing) existing.remove();
+    def parse(self, latex):
+        """Parse LaTeX to SymPy expression with error popup display"""
+        import re
+        from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
 
-              let popup = document.createElement('div');
-              popup.id = 'parseErrorPopup';
+        cleaned = self.clean_latex(latex)
 
-              // Detect if mobile/small screen
-              let isMobile = window.innerWidth <= 768;
+        # Preprocess derivatives
+        clean = self._preprocess_derivatives(cleaned)
 
-              if(isMobile) {{
-                  // Mobile styles - fullscreen-like
-                  popup.style.cssText = `
-                      position:fixed;
-                      top:0;
-                      left:0;
-                      right:0;
-                      bottom:0;
-                      background:#f8fafc;
-                      color:#0f172a;
-                      font-family:monospace;
-                      padding:60px 16px 16px 16px;
-                      border:none;
-                      border-radius:0;
-                      box-shadow:none;
-                      white-space:pre-wrap;
-                      z-index:9999;
-                      overflow:auto;
-                      -webkit-overflow-scrolling:touch;
-                  `;
-              }} else {{
-                  // Desktop styles - centered dialog
-                  popup.style.cssText = `
-                      position:fixed;
-                      top:50%;
-                      left:50%;
-                      transform:translate(-50%, -50%);
-                      background:#f8fafc;
-                      color:#0f172a;
-                      font-family:monospace;
-                      padding:24px 24px 16px 24px;
-                      border:2px solid #ef4444;
-                      border-radius:12px;
-                      box-shadow:0 12px 40px rgba(0,0,0,0.2);
-                      white-space:pre;
-                      z-index:9999;
-                      max-width:650px;
-                      max-height:70vh;
-                      overflow:auto;
-                  `;
-              }}
+        # ✅ ADD THIS: Preprocess row operations
+        clean = self._preprocess_row_operations(clean)
 
-              let btn = document.createElement('button');
-              btn.textContent = '✖';
-              btn.title = 'Close';
+        window.console.log(f"🔍 Original LaTeX: {latex}")
+        window.console.log(f"🔍 Cleaned LaTeX: {clean}")
 
-              if(isMobile) {{
-                  // Mobile close button - larger and top-left
-                  btn.style.cssText = `
-                      position:fixed;
-                      top:12px;
-                      right:12px;
-                      width:44px;
-                      height:44px;
-                      border:none;
-                      background:#ef4444;
-                      color:#fff;
-                      font-size:24px;
-                      font-weight:bold;
-                      cursor:pointer;
-                      line-height:1;
-                      border-radius:8px;
-                      box-shadow:0 4px 12px rgba(239,68,68,0.4);
-                      z-index:10000;
-                  `;
-              }} else {{
-                  // Desktop close button - small and subtle
-                  btn.style.cssText = `
-                      position:absolute;
-                      top:8px;
-                      right:10px;
-                      border:none;
-                      background:transparent;
-                      color:#ef4444;
-                      font-size:18px;
-                      font-weight:bold;
-                      cursor:pointer;
-                      line-height:1;
-                  `;
-              }}
-              btn.onclick = () => popup.remove();
+        try:
+            tree = self.parser.parse(clean)
+            window.console.log(f"🔍 Parse tree: {tree.pretty()}")
+            result = self.transformer.transform(tree)
+            window.console.log(f"🔍 Transformed result: {result}")
+            return result
 
-              let title = document.createElement('div');
-              title.textContent = '⚠️ Parse Error';
+        except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
+            pos = getattr(e, "pos_in_stream", None)
+            line = getattr(e, "line", "?")
+            col = getattr(e, "column", "?")
 
-              if(isMobile) {{
-                  title.style.cssText = `
-                      font-size:22px;
-                      font-weight:bold;
-                      color:#ef4444;
-                      margin-bottom:16px;
-                      padding-right:50px;
-                  `;
-              }} else {{
-                  title.style.cssText = `
-                      font-size:18px;
-                      font-weight:bold;
-                      color:#ef4444;
-                      margin-bottom:12px;
-                  `;
-              }}
+            # Remove "Expected …" section from Lark message
+            raw_msg = str(e)
+            simplified_msg = re.sub(r"Expected one of:.*", "", raw_msg, flags=re.DOTALL).strip()
 
-              let content = document.createElement('div');
-              content.textContent = `{safe_msg}`;
+            # Build context with caret pointing to error
+            try:
+                span = 35
+                start = max(0, (pos or 0) - span)
+                end = min(len(clean), (pos or 0) + span)
+                snippet = clean[start:end]
+                caret_pos = (pos or 0) - start
+                caret_line = " " * caret_pos + "↑"
+                context = f"{snippet}\n{caret_line}"
+            except Exception:
+                context = clean
 
-              if(isMobile) {{
-                  content.style.cssText = `
-                      font-size:14px;
-                      line-height:1.6;
-                      word-break:break-word;
-                      padding-top:8px;
-                  `;
-              }} else {{
-                  content.style.cssText = `
-                      padding-top:8px;
-                  `;
-              }}
+            msg = (
+                f"❌ Parse error in LaTeX:\n\n"
+                f"Line: {line}, Column: {col}\n"
+                f"Type: {type(e).__name__}\n"
+                f"Message: {simplified_msg}\n\n"
+                f"Context:\n{context}"
+            )
+            self._show_error_popup(msg)
+            window.console.error(msg)
+            return None
 
-              popup.appendChild(btn);
-              popup.appendChild(title);
-              popup.appendChild(content);
-              document.body.appendChild(popup);
-          }})();
-      """
-      window.eval(js_code)
+        except Exception as e:
+            msg = f"❌ General parse error: {e}"
+            window.console.error(msg)
+            self._show_error_popup(msg)
+            return None
 
-  def parse(self, latex):
-      """Parse LaTeX to SymPy expression with error popup display"""
-      import re
-      from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
+    def clean_latex(self, tex):
+        """Normalize LaTeX string for parsing"""
+        import re
+        if not tex:
+            return ""
+        t = str(tex)
 
-      cleaned = self.clean_latex(latex)
-      # --- ADD THE PREPROCESSING STEP HERE ---
-      clean = self._preprocess_derivatives(cleaned)
+        # Remove \left and \right but keep the parentheses
+        t = t.replace("\\left(", "(")
+        t = t.replace("\\right)", ")")
+        t = t.replace("\\left[", "[")
+        t = t.replace("\\right]", "]")
+        t = t.replace("\\left\\{", "{")
+        t = t.replace("\\right\\}", "}")
+        t = t.replace("\\left|", "|")
+        t = t.replace("\\right|", "|")
 
-      window.console.log(f"🔍 Original LaTeX: {latex}")
-      window.console.log(f"🔍 Cleaned LaTeX: {clean}")
+        # Replace mathrm{d} with d
+        t = t.replace("\\mathrm{d}", "d")
 
-      try:
-          tree = self.parser.parse(clean)
-          window.console.log(f"🔍 Parse tree: {tree.pretty()}")
-          result = self.transformer.transform(tree)
-          window.console.log(f"🔍 Transformed result: {result}")
-          return result
+        # Remove spacing macros
+        t = re.sub(r"\\(?:,|;|:|!|quad|qquad| )", "", t)
 
-      except (UnexpectedToken, UnexpectedCharacters, UnexpectedEOF) as e:
-          pos = getattr(e, "pos_in_stream", None)
-          line = getattr(e, "line", "?")
-          col = getattr(e, "column", "?")
+        # Remove whitespace
+        t = re.sub(r"\s+", "", t)
 
-          # Remove "Expected …" section from Lark message
-          raw_msg = str(e)
-          simplified_msg = re.sub(r"Expected one of:.*", "", raw_msg, flags=re.DOTALL).strip()
+        return t.strip()
 
-          # Build context with caret pointing to error
-          try:
-              span = 35
-              start = max(0, (pos or 0) - span)
-              end = min(len(clean), (pos or 0) + span)
-              snippet = clean[start:end]
-              caret_pos = (pos or 0) - start
-              caret_line = " " * caret_pos + "↑"
-              context = f"{snippet}\n{caret_line}"
-          except Exception:
-              context = clean
+    def _create_transformer(self):
+        """Create the Lark transformer with improved rules"""
+        from lark import Transformer, v_args
+        import sympy as sp
 
-          msg = (
-              f"❌ Parse error in LaTeX:\n\n"
-              f"Line: {line}, Column: {col}\n"
-              f"Type: {type(e).__name__}\n"
-              f"Message: {simplified_msg}\n\n"
-              f"Context:\n{context}"
-          )
-          self._show_error_popup(msg)
-          window.console.error(msg)
-          return None
+        @v_args(inline=True)
+        class Latex2Sympy(Transformer):
+            def paren_expr(self, expr):
+                return expr
 
-      except Exception as e:
-          msg = f"❌ General parse error: {e}"
-          window.console.error(msg)
-          self._show_error_popup(msg)
-          return None
+            def braces_expr(self, expr):
+                return expr
 
-  def extract_structure(self, expr):
-      """Extract structural fingerprint of expression"""
-      import sympy as sp
-      operators, operands = {}, {}
+            def number(self, tok):
+                s = str(tok)
+                return sp.Integer(s) if '.' not in s else sp.Float(s)
 
-      def process(node, parent_op=None):
-          if node is None:
-              return
-          if isinstance(node, (tuple, list)) and all(isinstance(i, sp.Integer) for i in node):
-              return
-          if isinstance(node, sp.MatrixBase):
-              for el in node:
-                  process(el, parent_op)
-              return
-          if isinstance(node, sp.MatrixExpr) and not isinstance(node, sp.MatrixBase):
-              operands[str(node)] = operands.get(str(node), 0) + 1
-              return
+            def symbol(self, tok):
+                s = str(tok).strip()
+                return sp.Symbol(s[1:] if s.startswith("\\") else s)
 
-          # ✅ NEW: Check if this is a Mul(-1, x) pattern (negation)
-          if isinstance(node, sp.Mul) and len(node.args) == 2:
-              args = node.args
-              # Check if first arg is -1
-              if args[0] == sp.Integer(-1):
-                  second_arg = args[1]
+            def pi_symbol(self, _):
+                return sp.pi
 
-                  # Only handle if second arg is atomic (Symbol or Number, not compound expression)
-                  if isinstance(second_arg, (sp.Symbol, sp.Number)) and second_arg != sp.Integer(-1):
-                      # This is a simple negation like -5 or -x
-                      second_str = str(second_arg).strip().replace(" ", "")
-                      negative_str = f"-{second_str}"
-                      operands[negative_str] = operands.get(negative_str, 0) + 1
+            def infty_symbol(self, _):
+                return sp.oo
 
-                      window.console.log(f"✅ Detected Mul(-1, {second_str}) - converted to negative: {negative_str}")
-                      return  # Don't add Mul operator or process children
+            def infinity(self, tok):
+                s = str(tok)
+                return -sp.oo if s.startswith('-') else sp.oo
 
-          if hasattr(node, "args") and len(node.args) > 0:
-              op_name = type(node).__name__
-              if op_name == "Tuple":
-                  for c in node.args:
-                      process(c, parent_op)
-                  return
-              if not (op_name == "Mul" and (parent_op == "Mul" or len(node.args) == 1)):
-                  operators[op_name] = operators.get(op_name, 0) + 1
-              for c in node.args:
-                  process(c, op_name)
-              return
-          val = str(node).strip().replace(" ", "")
-          if val == "-1":
-              return
-          operands[val] = operands.get(val, 0) + 1
+            def abs_func(self, expr):
+                return sp.Abs(expr)
 
-      try:
-          process(expr)
-      except Exception as e:
-          window.console.log(f"extract_structure error: {e}")
+            def neg(self, v):
+                return sp.Mul(-1, v, evaluate=False)
 
-      return {
-          "operators": operators,
-          "operands": operands,
-          "total_ops": sum(operators.values()),
-          "total_operands": sum(operands.values())
-      }
-  def normalize(self, expr):
-      """Normalize and simplify expressions"""
-      import sympy as sp
+            def add(self, a, b):
+                return sp.Add(a, b, evaluate=False)
 
-      if expr is None:
-          return None
-      try:
-          # The input is guaranteed to be a SymPy object
-          window.console.log(f"DEBUG: Normalizer received SymPy object: {expr}")
+            def sub(self, a, b):
+                return sp.Add(a, sp.Mul(-1, b, evaluate=False), evaluate=False)
 
-          if hasattr(expr, "doit"):
-              window.console.log(f"DEBUG: Expression has doit, calling it...")
-              expr = expr.doit()
-              window.console.log(f"DEBUG: After doit: {expr}")
+            def mul(self, a, b):
+                if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) or isinstance(b, (sp.MatrixBase, sp.MatrixExpr)):
+                    a_ = sp.UnevaluatedExpr(a) if isinstance(a, (sp.MatrixBase, sp.MatrixExpr)) else a
+                    b_ = sp.UnevaluatedExpr(b) if isinstance(b, (sp.MatrixBase, sp.MatrixExpr)) else b
+                    return sp.Mul(a_, b_, evaluate=False)
+                return sp.Mul(a, b, evaluate=True)
 
-          if isinstance(expr, list):
-              expr = sp.Matrix(expr)
-          if isinstance(expr, sp.Matrix):
-              expr = expr.applyfunc(sp.simplify)
-          else:
-              if isinstance(expr, sp.Mul) and not expr.is_Number:
-                  args = expr.args
-                  has_matrix = any(isinstance(a, sp.Matrix) for a in args)
-                  has_scalar = any(not isinstance(a, sp.Matrix) for a in args)
-                  if has_matrix and has_scalar:
-                      return sp.Mul(*args, evaluate=True)
-              expr = sp.simplify(expr)
-              window.console.log(f"DEBUG: Final simplified expression: {expr}")
+            def div(self, a, b):
+                return sp.Mul(a, sp.Pow(b, -1, evaluate=False), evaluate=False)
 
-      except Exception as e:
-          window.console.error(f"ERROR inside normalize: {e}")
-          import traceback
-          window.console.error(traceback.format_exc())
-          # Return the original expression if normalization fails
-          return expr
-      return expr
+            def frac(self, numerator, denominator):
+                return sp.Mul(numerator, sp.Pow(denominator, -1, evaluate=False), evaluate=False)
 
-  def compare(self, a, b):
-      """Check equality for scalar or matrix expressions (compatible with ProblemSolverApp)"""
-      import sympy as sp
-      try:
-          if isinstance(a, sp.MatrixBase) and isinstance(b, sp.MatrixBase):
-              if a.shape != b.shape:
-                  return False
-              for i in range(a.rows):
-                  for j in range(a.cols):
-                      if not sp.simplify(a[i, j] - b[i, j]) == 0:
-                          return False
-              return True
-          if isinstance(a, sp.MatrixBase) and isinstance(b, list):
-              return self.compare(a, sp.Matrix(b))
-          if isinstance(b, sp.MatrixBase) and isinstance(a, list):
-              return self.compare(sp.Matrix(a), b)
-          return sp.simplify(a - b) == 0
-      except:
-          try:
-              return a.equals(b)
-          except:
-              return False
+            def trig_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                func_map = {
+                    "sin": sp.sin,
+                    "cos": sp.cos,
+                    "tan": sp.tan,
+                    "cot": sp.cot,
+                    "sec": sp.sec,
+                    "csc": sp.csc,
+                    "arcsin": sp.asin,
+                    "arccos": sp.acos,
+                    "arctan": sp.atan,
+                }
+                func = func_map.get(func_str)
+                if func:
+                    return func(expr)
+                return sp.Function(func_str)(expr)
+
+            def log_func(self, func_name, expr):
+                func_str = str(func_name).strip().replace("\\", "")
+                if func_str == "ln":
+                    return sp.ln(expr)
+                elif func_str == "log":
+                    return sp.log(expr, 10)
+                elif func_str == "exp":
+                    return sp.exp(expr)
+                return sp.Function(func_str)(expr)
+
+            def limit_expr(self, var, value, expr):
+                return sp.Limit(expr, sp.Symbol(str(var)), value)
+
+            def implicit_mul(self, a, b):
+                if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
+                    return sp.Mul(a, b, evaluate=False)
+                return sp.Mul(a, b, evaluate=False)
+
+            def power(self, a, b):
+                """
+                Handle right-associative power like 10^100^0 correctly.
+                Lark gives us nested trees due to right recursion.
+                """
+                import sympy as sp
+
+                # If right child is another power, handle it recursively.
+                # Example: a=10, b=Pow(100, 0) -> Pow(10, (100**0))
+                if isinstance(b, sp.Pow):
+                    return sp.Pow(a, b, evaluate=False)
+
+                return sp.Pow(a, b, evaluate=False)
+
+            # --- NEW METHOD FOR DEGREES ---
+            def atom_to_degree(self, tree):
+                """
+                Handles expressions like 90^\circ.
+                Converts degrees to radians by multiplying by pi/180.
+                """
+                # tree.children[0] is the already-transformed atom (e.g., the number 90)
+                atom = tree.children[0]
+                # We don't need tree.children[1] which is the degree_expr
+                return sp.pi * atom / 180
+
+            def elements(self, *items):
+                return list(items)
+
+            def row(self, elements):
+                return list(elements) if isinstance(elements, (list, tuple)) else [elements]
+
+            def matrix_rows(self, *rows):
+                row_list = [list(r) if isinstance(r, (list, tuple)) else [r] for r in rows]
+                return sp.Matrix(row_list)
+
+            def matrix_env(self, *args):
+                rows = []
+                for a in args:
+                    if a is None:
+                        continue
+                    if isinstance(a, list) and a and all(isinstance(x, (list, tuple)) for x in a):
+                        rows.extend([list(r) for r in a])
+                    elif isinstance(a, (list, tuple)):
+                        rows.append(list(a))
+                    else:
+                        rows.append([a])
+                return sp.Matrix(rows)
+
+            def scalar_matrix_mul(self, scalar, matrix):
+                return sp.Mul(scalar, matrix, evaluate=False)
+
+            def row_reference(self, i):
+                return ("ref", int(i))
+
+            def row_scale(self, factor, i):
+                return ("scale", int(i), factor)
+
+            def row_replace(self, target, arrow, expr):
+                """Row replacement operation - arrow parameter is captured but not used"""
+                return ("replace", int(target), expr)
+
+            def row_swap(self, i, swap_arrow, j):
+                """Row swap operation - swap_arrow parameter is captured but not used"""
+                return ("swap", int(i), int(j))
+
+            def row_combine(self, i, op, factor, j):
+                return ("combine", int(i), str(op), factor, int(j))
+
+            def matrix_apply_ops(self, matrix, *ops):
+                import sympy as sp
+                m = sp.Matrix(matrix) if not isinstance(matrix, sp.Matrix) else matrix
+                for op in ops:
+                    if op[0] == "replace":
+                        _, target, expr = op
+                        if isinstance(expr, tuple):
+                            if expr[0] == "ref":
+                                m[target-1, :] = m[expr[1]-1, :]
+                            elif expr[0] == "scale":
+                                _, i, factor = expr
+                                m[target-1, :] = factor * m[i-1, :]
+                            elif expr[0] == "combine":
+                                _, i, op_str, factor, j = expr
+                                if op_str == "+":
+                                    m[target-1, :] = m[i-1, :] + factor * m[j-1, :]
+                                else:
+                                    m[target-1, :] = m[i-1, :] - factor * m[j-1, :]
+                    elif op[0] == "swap":
+                        _, i, j = op
+                        temp = m[i-1, :].copy()
+                        m[i-1, :] = m[j-1, :]
+                        m[j-1, :] = temp
+                return m
+
+            # --- METHODS FOR PREPROCESSED DERIVATIVES ---
+            def derivative_func(self, var, expr):
+                """Handles the preprocessed __derivative(var, expr) call."""
+                return sp.Derivative(expr, sp.Symbol(str(var)))
+
+            def partial_derivative_func(self, var, expr):
+                """Handles the preprocessed __partial_derivative(var, expr) call."""
+                return sp.Derivative(expr, sp.Symbol(str(var)))
+
+            def start(self, e):
+                return e
+
+        return Latex2Sympy()
+
+    def validate_limit(self, limit_expr):
+        """
+        Validate if a limit problem is suitable for students.
+        Returns (is_valid, error_message)
+
+        Invalid cases:
+        1. Different left and right limit values (discontinuity)
+        2. Oscillating limits (e.g., sin(1/x) as x->0)
+        3. Limits that evaluate to infinity
+        """
+        import sympy as sp
+
+        if not isinstance(limit_expr, sp.Limit):
+            return (True, None)  # Not a limit, skip validation
+
+        try:
+            # Get the limit components
+            expr = limit_expr.args[0]
+            var = limit_expr.args[1]
+            point = limit_expr.args[2]
+
+            # Evaluate the limit
+            limit_value = limit_expr.doit()
+
+            # Check 1: Limit evaluates to infinity
+            if limit_value.has(sp.oo) or limit_value == sp.oo or limit_value == -sp.oo:
+                return (False, f"Limit evaluates to infinity: {limit_value}")
+
+            # Check 2: Limit does not exist (returns unevaluated or NaN)
+            if isinstance(limit_value, sp.Limit) or limit_value is sp.nan:
+                return (False, "Limit does not exist or cannot be determined")
+
+            # Check 3: Different left and right limits (if approaching a finite point)
+            if point != sp.oo and point != -sp.oo:
+                try:
+                    left_limit = sp.limit(expr, var, point, '-')
+                    right_limit = sp.limit(expr, var, point, '+')
+
+                    # Simplify both limits
+                    left_simplified = sp.simplify(left_limit)
+                    right_simplified = sp.simplify(right_limit)
+
+                    # Check if they're different
+                    if not sp.simplify(left_simplified - right_simplified) == 0:
+                        return (False, f"Left and right limits differ: left={left_simplified}, right={right_simplified}")
+                except:
+                    pass
+
+            # Check 4: Oscillating behavior (limit doesn't exist due to oscillation)
+            # This is tricky - we check if the limit is AccumBounds or contains zoo
+            if hasattr(limit_value, 'is_finite') and not limit_value.is_finite:
+                if limit_value != sp.oo and limit_value != -sp.oo:
+                    return (False, "Limit oscillates or is undefined")
+
+            # Check for AccumBounds (accumulated bounds, indicates oscillation)
+            if 'AccumBounds' in str(type(limit_value)):
+                return (False, "Limit oscillates between multiple values")
+
+            # Check for zoo (complex infinity, often from oscillation)
+            if limit_value == sp.zoo:
+                return (False, "Limit is complex infinity (oscillation or undefined)")
+
+            return (True, None)
+
+        except Exception as e:
+            window.console.error(f"Error validating limit: {e}")
+            return (False, f"Error evaluating limit: {str(e)}")
+
+    def extract_structure(self, expr):
+        """Extract structural fingerprint of expression"""
+        import sympy as sp
+        operators, operands = {}, {}
+
+        def process(node, parent_op=None):
+            if node is None:
+                return
+            if isinstance(node, (tuple, list)) and all(isinstance(i, sp.Integer) for i in node):
+                return
+            if isinstance(node, sp.MatrixBase):
+                for el in node:
+                    process(el, parent_op)
+                return
+            if isinstance(node, sp.MatrixExpr) and not isinstance(node, sp.MatrixBase):
+                operands[str(node)] = operands.get(str(node), 0) + 1
+                return
+
+            # ✅ NEW: Check if this is a Mul(-1, x) pattern (negation)
+            if isinstance(node, sp.Mul) and len(node.args) == 2:
+                args = node.args
+                # Check if first arg is -1
+                if args[0] == sp.Integer(-1):
+                    second_arg = args[1]
+
+                    # Only handle if second arg is atomic (Symbol or Number, not compound expression)
+                    if isinstance(second_arg, (sp.Symbol, sp.Number)) and second_arg != sp.Integer(-1):
+                        # This is a simple negation like -5 or -x
+                        second_str = str(second_arg).strip().replace(" ", "")
+                        negative_str = f"-{second_str}"
+                        operands[negative_str] = operands.get(negative_str, 0) + 1
+
+                        window.console.log(f"✅ Detected Mul(-1, {second_str}) - converted to negative: {negative_str}")
+                        return  # Don't add Mul operator or process children
+
+            if hasattr(node, "args") and len(node.args) > 0:
+                op_name = type(node).__name__
+                if op_name == "Tuple":
+                    for c in node.args:
+                        process(c, parent_op)
+                    return
+                if not (op_name == "Mul" and (parent_op == "Mul" or len(node.args) == 1)):
+                    operators[op_name] = operators.get(op_name, 0) + 1
+                for c in node.args:
+                    process(c, op_name)
+                return
+            val = str(node).strip().replace(" ", "")
+            if val == "-1":
+                return
+            operands[val] = operands.get(val, 0) + 1
+
+        try:
+            process(expr)
+        except Exception as e:
+            window.console.log(f"extract_structure error: {e}")
+
+        return {
+            "operators": operators,
+            "operands": operands,
+            "total_ops": sum(operators.values()),
+            "total_operands": sum(operands.values())
+        }
+
+    def normalize(self, expr):
+        """Normalize and simplify expressions"""
+        import sympy as sp
+
+        if expr is None:
+            return None
+        try:
+            # The input is guaranteed to be a SymPy object
+            window.console.log(f"DEBUG: Normalizer received SymPy object: {expr}")
+
+            if hasattr(expr, "doit"):
+                window.console.log(f"DEBUG: Expression has doit, calling it...")
+                expr = expr.doit()
+                window.console.log(f"DEBUG: After doit: {expr}")
+
+            if isinstance(expr, list):
+                expr = sp.Matrix(expr)
+            if isinstance(expr, sp.Matrix):
+                expr = expr.applyfunc(sp.simplify)
+            else:
+                if isinstance(expr, sp.Mul) and not expr.is_Number:
+                    args = expr.args
+                    has_matrix = any(isinstance(a, sp.Matrix) for a in args)
+                    has_scalar = any(not isinstance(a, sp.Matrix) for a in args)
+                    if has_matrix and has_scalar:
+                        return sp.Mul(*args, evaluate=True)
+                expr = sp.simplify(expr)
+                window.console.log(f"DEBUG: Final simplified expression: {expr}")
+
+        except Exception as e:
+            window.console.error(f"ERROR inside normalize: {e}")
+            import traceback
+            window.console.error(traceback.format_exc())
+            # Return the original expression if normalization fails
+            return expr
+        return expr
+
+    def compare(self, a, b):
+        """Check equality for scalar or matrix expressions (compatible with ProblemSolverApp)"""
+        import sympy as sp
+        try:
+            if isinstance(a, sp.MatrixBase) and isinstance(b, sp.MatrixBase):
+                if a.shape != b.shape:
+                    return False
+                for i in range(a.rows):
+                    for j in range(a.cols):
+                        if not sp.simplify(a[i, j] - b[i, j]) == 0:
+                            return False
+                return True
+            if isinstance(a, sp.MatrixBase) and isinstance(b, list):
+                return self.compare(a, sp.Matrix(b))
+            if isinstance(b, sp.MatrixBase) and isinstance(a, list):
+                return self.compare(sp.Matrix(a), b)
+            return sp.simplify(a - b) == 0
+        except:
+            try:
+                return a.equals(b)
+            except:
+                return False
 
 class KeyboardInputHandler:
   """Common handler for keyboard input to MathQuill fields"""

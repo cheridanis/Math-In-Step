@@ -18,12 +18,6 @@
   <!-- PyScript -->
   <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
   <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-  <!--
-  <script>
-  !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t||self).AsciiMathParser=e()}(this,function(){function t(t,e){(null==e||e>t.length)&&(e=t.length);for(var a=0,i=new Array(e);a<e;a++)i[a]=t[a];return i}function e(e,a){var i="undefined"!=typeof Symbol&&e[Symbol.iterator]||e["@@iterator"];if(i)return(i=i.call(e)).next.bind(i);if(Array.isArray(e)||(i=function(e,a){if(e){if("string"==typeof e)return t(e,a);var i=Object.prototype.toString.call(e).slice(8,-1);return"Object"===i&&e.constructor&&(i=e.constructor.name),"Map"===i||"Set"===i?Array.from(e):"Arguments"===i||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(i)?t(e,a):void 0}}(e))||a&&e&&"number"==typeof e.length){i&&(e=i);var s=0;return function(){return s>=e.length?{done:!0}:{done:!1,value:e[s++]}}}throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}var a=/*#__PURE__*/function(){function t(){this.decimalsign="\\.",this.setup_symbols(),this.sort_symbols()}var a=t.prototype;return a.setup_symbols=function(){this.greek_letters=["alpha","beta","gamma","Gamma","delta","Delta","epsilon","varepsilon","zeta","eta","theta","Theta","vartheta","iota","kappa","lambda","Lambda","mu","nu","xi","Xi","pi","Pi","rho","sigma","Sigma","tau","upsilon","phi","Phi","varphi","chi","psi","Psi","omega","Omega"],this.relations=[{asciimath:":=",tex:":="},{asciimath:":|:",tex:"\\|"},{asciimath:"=>",tex:"\\Rightarrow"},{asciimath:"approx",tex:"\\approx"},{asciimath:"~~",tex:"\\approx"},{asciimath:"cong",tex:"\\cong"},{asciimath:"~=",tex:"\\cong"},{asciimath:"equiv",tex:"\\equiv"},{asciimath:"-=",tex:"\\equiv"},{asciimath:"exists",tex:"\\exists"},{asciimath:"EE",tex:"\\exists"},{asciimath:"forall",tex:"\\forall"},{asciimath:"AA",tex:"\\forall"},{asciimath:">=",tex:"\\ge"},{asciimath:"ge",tex:"\\ge"},{asciimath:"gt=",tex:"\\geq"},{asciimath:"geq",tex:"\\geq"},{asciimath:"gt",tex:"\\gt"},{asciimath:"in",tex:"\\in"},{asciimath:"<=",tex:"\\le"},{asciimath:"le",tex:"\\le"},{asciimath:"lt=",tex:"\\leq"},{asciimath:"leq",tex:"\\leq"},{asciimath:"lt",tex:"\\lt"},{asciimath:"models",tex:"\\models"},{asciimath:"|==",tex:"\\models"},{asciimath:"!=",tex:"\\ne"},{asciimath:"ne",tex:"\\ne"},{asciimath:"notin",tex:"\\notin"},{asciimath:"!in",tex:"\\notin"},{asciimath:"prec",tex:"\\prec"},{asciimath:"-lt",tex:"\\prec"},{asciimath:"-<",tex:"\\prec"},{asciimath:"preceq",tex:"\\preceq"},{asciimath:"-<=",tex:"\\preceq"},{asciimath:"propto",tex:"\\propto"},{asciimath:"prop",tex:"\\propto"},{asciimath:"subset",tex:"\\subset"},{asciimath:"sub",tex:"\\subset"},{asciimath:"subseteq",tex:"\\subseteq"},{asciimath:"sube",tex:"\\subseteq"},{asciimath:"succ",tex:"\\succ"},{asciimath:">-",tex:"\\succ"},{asciimath:"succeq",tex:"\\succeq"},{asciimath:">-=",tex:"\\succeq"},{asciimath:"supset",tex:"\\supset"},{asciimath:"sup",tex:"\\supset"},{asciimath:"supseteq",tex:"\\supseteq"},{asciimath:"supe",tex:"\\supseteq"},{asciimath:"vdash",tex:"\\vdash"},{asciimath:"|--",tex:"\\vdash"}],this.constants=[{asciimath:"dt",tex:"dt"},{asciimath:"dx",tex:"dx"},{asciimath:"dy",tex:"dy"},{asciimath:"dz",tex:"dz"},{asciimath:"prime",tex:"'"},{asciimath:"implies",tex:"\\implies"},{asciimath:"epsi",tex:"\\epsilon"},{asciimath:"leftrightarrow",tex:"\\leftrightarrow"},{asciimath:"Leftrightarrow",tex:"\\Leftrightarrow"},{asciimath:"rightarrow",tex:"\\rightarrow"},{asciimath:"Rightarrow",tex:"\\Rightarrow"},{asciimath:"backslash",tex:"\\backslash"},{asciimath:"leftarrow",tex:"\\leftarrow"},{asciimath:"Leftarrow",tex:"\\Leftarrow"},{asciimath:"setminus",tex:"\\setminus"},{asciimath:"bigwedge",tex:"\\bigwedge"},{asciimath:"diamond",tex:"\\diamond"},{asciimath:"bowtie",tex:"\\bowtie"},{asciimath:"bigvee",tex:"\\bigvee"},{asciimath:"bigcap",tex:"\\bigcap"},{asciimath:"bigcup",tex:"\\bigcup"},{asciimath:"square",tex:"\\square"},{asciimath:"lamda",tex:"\\lambda"},{asciimath:"Lamda",tex:"\\Lambda"},{asciimath:"aleph",tex:"\\aleph"},{asciimath:"angle",tex:"\\angle"},{asciimath:"frown",tex:"\\frown"},{asciimath:"qquad",tex:"\\qquad"},{asciimath:"cdots",tex:"\\cdots"},{asciimath:"vdots",tex:"\\vdots"},{asciimath:"ddots",tex:"\\ddots"},{asciimath:"cdot",tex:"\\cdot"},{asciimath:"star",tex:"\\star"},{asciimath:"|><|",tex:"\\bowtie"},{asciimath:"circ",tex:"\\circ"},{asciimath:"oint",tex:"\\oint"},{asciimath:"grad",tex:"\\nabla"},{asciimath:"quad",tex:"\\quad"},{asciimath:"uarr",tex:"\\uparrow"},{asciimath:"darr",tex:"\\downarrow"},{asciimath:"downarrow",tex:"\\downarrow"},{asciimath:"rarr",tex:"\\rightarrow"},{asciimath:">->>",tex:"\\twoheadrightarrowtail"},{asciimath:"larr",tex:"\\leftarrow"},{asciimath:"harr",tex:"\\leftrightarrow"},{asciimath:"rArr",tex:"\\Rightarrow"},{asciimath:"lArr",tex:"\\Leftarrow"},{asciimath:"hArr",tex:"\\Leftrightarrow"},{asciimath:"ast",tex:"\\ast"},{asciimath:"***",tex:"\\star"},{asciimath:"|><",tex:"\\ltimes"},{asciimath:"><|",tex:"\\rtimes"},{asciimath:"^^^",tex:"\\bigwedge"},{asciimath:"vvv",tex:"\\bigvee"},{asciimath:"cap",tex:"\\cap"},{asciimath:"nnn",tex:"\\bigcap"},{asciimath:"cup",tex:"\\cup"},{asciimath:"uuu",tex:"\\bigcup"},{asciimath:"not",tex:"\\neg"},{asciimath:"<=>",tex:"\\Leftrightarrow"},{asciimath:"_|_",tex:"\\bot"},{asciimath:"bot",tex:"\\bot"},{asciimath:"int",tex:"\\int"},{asciimath:"del",tex:"\\partial"},{asciimath:"...",tex:"\\ldots"},{asciimath:"/_\\",tex:"\\triangle"},{asciimath:"|__",tex:"\\lfloor"},{asciimath:"__|",tex:"\\rfloor"},{asciimath:"dim",tex:"\\dim"},{asciimath:"mod",tex:"\\operatorname{mod}"},{asciimath:"lub",tex:"\\operatorname{lub}"},{asciimath:"glb",tex:"\\operatorname{glb}"},{asciimath:">->",tex:"\\rightarrowtail"},{asciimath:"->>",tex:"\\twoheadrightarrow"},{asciimath:"|->",tex:"\\mapsto"},{asciimath:"lim",tex:"\\lim"},{asciimath:"Lim",tex:"\\operatorname{Lim}"},{asciimath:"and",tex:"\\quad\\text{and}\\quad"},{asciimath:"**",tex:"\\ast"},{asciimath:"//",tex:"/"},{asciimath:"\\",tex:"\\,"},{asciimath:"\\\\",tex:"\\backslash"},{asciimath:"xx",tex:"\\times"},{asciimath:"-:",tex:"\\div"},{asciimath:"o+",tex:"\\oplus"},{asciimath:"ox",tex:"\\otimes"},{asciimath:"o.",tex:"\\odot"},{asciimath:"^",tex:"\\hat{}"},{asciimath:"_",tex:"\\_"},{asciimath:"^^",tex:"\\wedge"},{asciimath:"vv",tex:"\\vee"},{asciimath:"nn",tex:"\\cap"},{asciimath:"uu",tex:"\\cup"},{asciimath:"TT",tex:"\\top"},{asciimath:"+-",tex:"\\pm"},{asciimath:"O/",tex:"\\emptyset"},{asciimath:"oo",tex:"\\infty"},{asciimath:":.",tex:"\\therefore"},{asciimath:":'",tex:"\\because"},{asciimath:"/_",tex:"\\angle"},{asciimath:"|~",tex:"\\lceil"},{asciimath:"~|",tex:"\\rceil"},{asciimath:"CC",tex:"\\mathbb{C}"},{asciimath:"NN",tex:"\\mathbb{N}"},{asciimath:"QQ",tex:"\\mathbb{Q}"},{asciimath:"RR",tex:"\\mathbb{R}"},{asciimath:"ZZ",tex:"\\mathbb{Z}"},{asciimath:"->",tex:"\\to"},{asciimath:"or",tex:"\\quad\\text{or}\\quad"},{asciimath:"if",tex:"\\quad\\text{if}\\quad"},{asciimath:"iff",tex:"\\iff"},{asciimath:"*",tex:"\\cdot"},{asciimath:"@",tex:"\\circ"},{asciimath:"%",tex:"\\%"},{asciimath:"boxempty",tex:"\\square"},{asciimath:"lambda",tex:"\\lambda"},{asciimath:"Lambda",tex:"\\Lambda"},{asciimath:"nabla",tex:"\\nabla"},{asciimath:"uparrow",tex:"\\uparrow"},{asciimath:"downarrow",tex:"\\downarrow"},{asciimath:"twoheadrightarrowtail",tex:"\\twoheadrightarrowtail"},{asciimath:"ltimes",tex:"\\ltimes"},{asciimath:"rtimes",tex:"\\rtimes"},{asciimath:"neg",tex:"\\neg"},{asciimath:"partial",tex:"\\partial"},{asciimath:"ldots",tex:"\\ldots"},{asciimath:"triangle",tex:"\\triangle"},{asciimath:"lfloor",tex:"\\lfloor"},{asciimath:"rfloor",tex:"\\rfloor"},{asciimath:"rightarrowtail",tex:"\\rightarrowtail"},{asciimath:"twoheadrightarrow",tex:"\\twoheadrightarrow"},{asciimath:"mapsto",tex:"\\mapsto"},{asciimath:"times",tex:"\\times"},{asciimath:"div",tex:"\\div"},{asciimath:"divide",tex:"\\div"},{asciimath:"oplus",tex:"\\oplus"},{asciimath:"otimes",tex:"\\otimes"},{asciimath:"odot",tex:"\\odot"},{asciimath:"wedge",tex:"\\wedge"},{asciimath:"vee",tex:"\\vee"},{asciimath:"top",tex:"\\top"},{asciimath:"pm",tex:"\\pm"},{asciimath:"emptyset",tex:"\\emptyset"},{asciimath:"infty",tex:"\\infty"},{asciimath:"therefore",tex:"\\therefore"},{asciimath:"because",tex:"\\because"},{asciimath:"lceil",tex:"\\lceil"},{asciimath:"rceil",tex:"\\rceil"},{asciimath:"to",tex:"\\to"},{asciimath:"langle",tex:"\\langle"},{asciimath:"lceiling",tex:"\\lceil"},{asciimath:"rceiling",tex:"\\rceil"},{asciimath:"max",tex:"\\max"},{asciimath:"min",tex:"\\min"},{asciimath:"prod",tex:"\\prod"},{asciimath:"sum",tex:"\\sum"}],this.constants=this.constants.concat(this.relations),this.left_brackets=[{asciimath:"langle",tex:"\\langle"},{asciimath:"(:",tex:"\\langle"},{asciimath:"<<",tex:"\\langle"},{asciimath:"{:",tex:"."},{asciimath:"(",tex:"("},{asciimath:"[",tex:"["},{asciimath:"{",tex:"\\lbrace"},{asciimath:"lbrace",tex:"\\lbrace"}],this.right_brackets=[{asciimath:"rangle",tex:"\\rangle"},{asciimath:":)",tex:"\\rangle"},{asciimath:">>",tex:"\\rangle"},{asciimath:":}",tex:".",free_tex:":\\}"},{asciimath:")",tex:")"},{asciimath:"]",tex:"]"},{asciimath:"}",tex:"\\rbrace"},{asciimath:"rbrace",tex:"\\rbrace"}],this.leftright_brackets=[{asciimath:"|",left_tex:"\\lvert",right_tex:"\\rvert",free_tex:"|"}],this.unary_symbols=[{asciimath:"sqrt",tex:"\\sqrt"},{asciimath:"f",tex:"f",func:!0},{asciimath:"g",tex:"g",func:!0},{asciimath:"sin",tex:"\\sin",func:!0},{asciimath:"cos",tex:"\\cos",func:!0},{asciimath:"tan",tex:"\\tan",func:!0},{asciimath:"arcsin",tex:"\\arcsin",func:!0},{asciimath:"arccos",tex:"\\arccos",func:!0},{asciimath:"arctan",tex:"\\arctan",func:!0},{asciimath:"sinh",tex:"\\sinh",func:!0},{asciimath:"cosh",tex:"\\cosh",func:!0},{asciimath:"tanh",tex:"\\tanh",func:!0},{asciimath:"cot",tex:"\\cot",func:!0},{asciimath:"coth",tex:"\\coth",func:!0},{asciimath:"sech",tex:"\\operatorname{sech}",func:!0},{asciimath:"csch",tex:"\\operatorname{csch}",func:!0},{asciimath:"sec",tex:"\\sec",func:!0},{asciimath:"csc",tex:"\\csc",func:!0},{asciimath:"log",tex:"\\log",func:!0},{asciimath:"ln",tex:"\\ln",func:!0},{asciimath:"abs",rewriteleftright:["|","|"]},{asciimath:"norm",rewriteleftright:["\\|","\\|"]},{asciimath:"floor",rewriteleftright:["\\lfloor","\\rfloor"]},{asciimath:"ceil",rewriteleftright:["\\lceil","\\rceil"]},{asciimath:"Sin",tex:"\\Sin",func:!0},{asciimath:"Cos",tex:"\\Cos",func:!0},{asciimath:"Tan",tex:"\\Tan",func:!0},{asciimath:"Arcsin",tex:"\\Arcsin",func:!0},{asciimath:"Arccos",tex:"\\Arccos",func:!0},{asciimath:"Arctan",tex:"\\Arctan",func:!0},{asciimath:"Sinh",tex:"\\Sinh",func:!0},{asciimath:"Cosh",tex:"\\Cosh",func:!0},{asciimath:"Tanh",tex:"\\Tanh",func:!0},{asciimath:"Cot",tex:"\\Cot",func:!0},{asciimath:"Sec",tex:"\\Sec",func:!0},{asciimath:"Csc",tex:"\\Csc",func:!0},{asciimath:"Log",tex:"\\Log",func:!0},{asciimath:"Ln",tex:"\\Ln",func:!0},{asciimath:"Abs",tex:"\\Abs",rewriteleftright:["|","|"]},{asciimath:"det",tex:"\\det",func:!0},{asciimath:"exp",tex:"\\exp",func:!0},{asciimath:"gcd",tex:"\\gcd",func:!0},{asciimath:"lcm",tex:"\\operatorname{lcm}",func:!0},{asciimath:"cancel",tex:"\\cancel"},{asciimath:"Sqrt",tex:"\\Sqrt"},{asciimath:"hat",tex:"\\hat",acc:!0},{asciimath:"bar",tex:"\\overline",acc:!0},{asciimath:"overline",tex:"\\overline",acc:!0},{asciimath:"vec",tex:"\\vec",acc:!0},{asciimath:"tilde",tex:"\\tilde",acc:!0},{asciimath:"dot",tex:"\\dot",acc:!0},{asciimath:"ddot",tex:"\\ddot",acc:!0},{asciimath:"ul",tex:"\\underline",acc:!0},{asciimath:"underline",tex:"\\underline",acc:!0},{asciimath:"ubrace",tex:"\\underbrace",acc:!0},{asciimath:"underbrace",tex:"\\underbrace",acc:!0},{asciimath:"obrace",tex:"\\overbrace",acc:!0},{asciimath:"overbrace",tex:"\\overbrace",acc:!0},{asciimath:"bb",atname:"mathvariant",atval:"bold",tex:"\\mathbf"},{asciimath:"mathbf",atname:"mathvariant",atval:"bold",tex:"mathbf"},{asciimath:"sf",atname:"mathvariant",atval:"sans-serif",tex:"\\mathsf"},{asciimath:"mathsf",atname:"mathvariant",atval:"sans-serif",tex:"mathsf"},{asciimath:"bbb",atname:"mathvariant",atval:"double-struck",tex:"\\mathbb"},{asciimath:"mathbb",atname:"mathvariant",atval:"double-struck",tex:"\\mathbb"},{asciimath:"cc",atname:"mathvariant",atval:"script",tex:"\\mathcal"},{asciimath:"mathcal",atname:"mathvariant",atval:"script",tex:"\\mathcal"},{asciimath:"tt",atname:"mathvariant",atval:"monospace",tex:"\\mathtt"},{asciimath:"mathtt",atname:"mathvariant",atval:"monospace",tex:"\\mathtt"},{asciimath:"fr",atname:"mathvariant",atval:"fraktur",tex:"\\mathfrak"},{asciimath:"mathfrak",atname:"mathvariant",atval:"fraktur",tex:"\\mathfrak"}],this.binary_symbols=[{asciimath:"root",tex:"\\sqrt",option:!0},{asciimath:"frac",tex:"\\frac"},{asciimath:"stackrel",tex:"\\stackrel"},{asciimath:"overset",tex:"\\overset"},{asciimath:"underset",tex:"\\underset"},{asciimath:"color",tex:"\\color",rawfirst:!0}],this.non_constant_symbols=["_","^","/"]},a.sort_symbols=function(){var t=function(t,e){return(t=t.asciimath.length)>(e=e.asciimath.length)?-1:t<e?1:0};this.constants.sort(t),this.relations.sort(t),this.left_brackets.sort(t),this.right_brackets.sort(t),this.leftright_brackets.sort(t),this.unary_symbols.sort(t),this.binary_symbols.sort(t)},a.error=function(t,e){var a=this.source(e).slice(0,5);throw new Error("Error at character "+e+' near "'+a+'": '+t)},a.literal=function(t){if(t)return{tex:t.token,pos:t.pos,end:t.end,ttype:"literal"}},a.longest=function(t){return(t=t.filter(function(t){return!!t})).sort(function(t,e){return(t=t.end)>(e=e.end)?-1:t<e?1:0}),t[0]},a.escape_text=function(t){return t.replace(/\{/g,"\\{").replace(/\}/g,"\\}")},a.input=function(t){this._source=t,this.brackets=[]},a.source=function(t,e){return void 0===t&&(t=0),arguments.length>1?this._source.slice(t,e):this._source.slice(t)},a.eof=function(t){return void 0===t&&(t=0),(t=this.strip_space(t))==this._source.length},a.unbracket=function(t){if(t){if(!t.bracket)return t;var e=["(",")","[","]","{","}"],a=e.includes(t.left.asciimath),i=e.includes(t.right.asciimath),s=a?"":t.left.tex,r=i?"":t.right.tex,c=t.middle?t.middle.tex:"";return s||r?{tex:"\\left "+(s=s||".")+" "+c+" \\right "+(r=r||"."),pos:t.pos,end:t.end}:{tex:c,pos:t.pos,end:t.end,middle_asciimath:this.source(a?t.left.end:t.pos,i?t.right.pos:t.end)}}},a.parse=function(t){return this.input(t),this.consume().tex},a.consume=function(t){void 0===t&&(t=0);for(var e="",a=[];!this.eof(t);){var i=this.expression_list(t);if(!i){var s=this.right_bracket(t);s&&(s.def.free_tex&&(s.tex=s.def.free_tex),i=s);var r=this.leftright_bracket(t);if(r){i=r;var c=this.subsup(r.end);c&&(i={tex:""+i.tex+c.tex,pos:t,end:c.end,ttype:"expression"})}}if(i)e&&(e+=" "),e+=i.tex,t=i.end,a.push(i);else if(!this.eof(t)){var n=this.source(t,t+1);a.push({tex:n,pos:t,ttype:"character"}),e+=n,t+=1}}return{tex:e,exprs:a}},a.strip_space=function(t){void 0===t&&(t=0);var e=this.source(t),a=e.replace(/^(\s|\\(?!\\))*/,"");return t+e.length-a.length},a.match=function(t,e){e=this.strip_space(e);var a=t.exec(this.source(e));if(a){var i=a[0];return{token:i,pos:e,match:a,end:e+i.length,ttype:"regex"}}},a.exact=function(t,e){if(e=this.strip_space(e),this.source(e).slice(0,t.length)==t)return{token:t,pos:e,end:e+t.length,ttype:"exact"}},a.expression_list=function(t){void 0===t&&(t=0);var e=this.expression(t);if(e){for(var a=e.end,i=e.tex,s=[e];!this.eof(a);){var r=this.exact(",",a);if(!r)break;if(i+=" ,",!(e=this.expression(a=r.end)))break;i+=" "+e.tex,s.push(e),a=e.end}return{tex:i,pos:t,end:a,exprs:s,ttype:"expression_list"}}},a.expression=function(t){void 0===t&&(t=0);var a=this.negative_expression(t);if(a)return a;var i=this.intermediate_or_fraction(t);if(i){if(this.eof(i.end))return i;var s=this.expression(i.end);return s?{tex:i.tex+" "+s.tex,pos:i.pos,end:s.end,ttype:"expression",exprs:[i,s]}:i}for(var r,c=e(this.non_constant_symbols);!(r=c()).done;){var n=r.value,h=this.exact(n,t);if(h)return{tex:n,pos:t,end:h.end,ttype:"constant"}}},a.negative_expression=function(t){void 0===t&&(t=0);var e=this.exact("-",t);if(e&&!this.other_constant(t)){var a=this.expression(e.end);return a?{tex:"- "+a.tex,pos:t,end:a.end,ttype:"negative_expression",dash:e,expression:a}:{tex:"-",pos:t,end:e.end,ttype:"constant"}}},a.intermediate_or_fraction=function(t){void 0===t&&(t=0);var e=this.intermediate(t);if(e){var a=this.match(/^\/(?!\/)/,e.end);if(a){var i=this.intermediate(a.end);if(i){var s=this.unbracket(e),r=this.unbracket(i);return{tex:"\\frac{"+s.tex+"}{"+r.tex+"}",pos:e.pos,end:i.end,ttype:"fraction",numerator:s,denominator:r}}var c=this.unbracket(e);return{tex:"\\frac{"+c.tex+"}{}",pos:e.pos,end:a.end,ttype:"fraction",numerator:c,denominator:null}}return e}},a.intermediate=function(t){void 0===t&&(t=0);var e=this.simple(t);if(e){var a=this.subsup(e.end);return a?{tex:""+e.tex+a.tex,pos:t,end:a.end,ttype:"intermediate",expression:e,subsup:a}:e}},a.subsup=function(t){void 0===t&&(t=0);var e,a,i="",s=t,r=this.exact("_",t);r&&((e=this.unbracket(this.simple(r.end)))?(i=i+"_{"+e.tex+"}",s=e.end):(i+="_{}",s=r.end));var c=this.match(/^\^(?!\^)/,s);if(c&&((a=this.unbracket(this.simple(c.end)))?(i=i+"^{"+a.tex+"}",s=a.end):(i+="^{}",s=c.end)),r||c)return{tex:i,pos:t,end:s,ttype:"subsup",sub:e,sup:a}},a.simple=function(t){return void 0===t&&(t=0),this.longest([this.matrix(t),this.bracketed_expression(t),this.binary(t),this.constant(t),this.text(t),this.unary(t),this.negative_simple(t)])},a.negative_simple=function(t){void 0===t&&(t=0);var e=this.exact("-",t);if(e&&!this.other_constant(t)){var a=this.simple(e.end);return a?{tex:"- "+a.tex,pos:t,end:a.end,ttype:"negative_simple",dash:e,expr:a}:{tex:"-",pos:t,end:e.end,ttype:"constant"}}},a.matrix=function(t){void 0===t&&(t=0);var e=this.left_bracket(t),a=!1;if(!e){if(!(e=this.leftright_bracket(t,"left")))return;a=!0}var i=this.matrix_contents(e.end,a);if(i){var s=a?this.leftright_bracket(i.end,"right"):this.right_bracket(i.end);if(s){var r=i.rows.map(function(t){return t.tex}).join(" \\\\ ");return{tex:"\\left "+e.tex+" "+(i.is_array?"\\begin{array}{"+i.column_desc+"} "+r+" \\end{array}":"\\begin{matrix} "+r+" \\end{matrix}")+" \\right "+s.tex,pos:t,end:s.end,ttype:"matrix",rows:i.rows,left:e,right:s}}}},a.matrix_contents=function(t,e){void 0===t&&(t=0),void 0===e&&(e=!1);for(var a=[],i=t,s=void 0,r=void 0,c=!1;!this.eof(i)&&!(e?this.leftright_bracket(i):this.right_bracket(i));){if(a.length){var n=this.exact(",",i);if(!n)return;i=n.end}var h=this.match(/^[(\[]/,i);if(!h)return;var o=[],m=[];for(i=h.end;!this.eof(i);){if(o.length){var x=this.exact(",",i);if(!x)break;i=x.end}var l=this.matrix_cell(i);if(!l)break;"column"==l.ttype?(m.push("|"),c=!0,null!==l.expr&&(m.push("r"),o.push(l.expr))):(m.push("r"),o.push(l)),i=l.end}if(!o.length)return;if(void 0===s)s=o.length;else if(o.length!=s)return;var u=this.match(/^[)\]]/,i);if(!u)return;var d=m.join("");if(void 0===r)r=d;else if(d!=r)return;a.push({ttype:"row",tex:o.map(function(t){return t.tex}).join(" & "),pos:h.end,end:i,cells:o}),i=u.end}if(!(void 0===s||s<=1&&a.length<=1))return{rows:a,end:i,column_desc:r,is_array:c}},a.matrix_cell=function(t){void 0===t&&(t=0);var e=this.exact("|",t);if(e){var a=this.expression(e.end);if(!a)return{ttype:"column",expr:null,pos:e.pos,end:e.end};var i=this.exact("|",a.end);if(!i)return{ttype:"column",expr:a,pos:e.pos,end:a.end};var s=this.expression(i.end);if(s)return{tex:"\\left \\lvert "+a.tex+" \\right \\rvert "+s.text,pos:e.pos,end:s.end,ttype:"expression",exprs:[a,s]}}return this.expression(t)},a.bracketed_expression=function(t){void 0===t&&(t=0);var e=this.left_bracket(t);if(e){var a=this.expression_list(e.end);if(a){var i=this.right_bracket(a.end)||this.leftright_bracket(a.end,"right");return i?{tex:"\\left"+e.tex+" "+a.tex+" \\right "+i.tex,pos:t,end:i.end,bracket:!0,left:e,right:i,middle:a,ttype:"bracket"}:this.eof(a.end)?{tex:"\\left"+e.tex+" "+a.tex+" \\right.",pos:t,end:a.end,ttype:"bracket",left:e,right:null,middle:a}:{tex:e.tex+" "+a.tex,pos:t,end:a.end,ttype:"expression",exprs:[e,a]}}var s=this.right_bracket(e.end)||this.leftright_bracket(e.end,"right");return s?{tex:"\\left "+e.tex+" \\right "+s.tex,pos:t,end:s.end,bracket:!0,left:e,right:s,middle:null,ttype:"bracket"}:{tex:e.tex,pos:t,end:e.end,ttype:"constant"}}if(!this.other_constant(t)){var r=this.leftright_bracket(t,"left");if(r){var c=this.expression_list(r.end);if(c){var n=this.leftright_bracket(c.end,"right")||this.right_bracket(c.end);if(n)return{tex:"\\left "+r.tex+" "+c.tex+" \\right "+n.tex,pos:t,end:n.end,bracket:!0,left:r,right:n,middle:c,ttype:"bracket"}}}}},a.right_bracket=function(t){void 0===t&&(t=0);for(var a,i=e(this.right_brackets);!(a=i()).done;){var s=a.value,r=this.exact(s.asciimath,t);if(r)return{tex:s.tex,pos:t,end:r.end,asciimath:s.asciimath,def:s,ttype:"right_bracket"}}},a.left_bracket=function(t){void 0===t&&(t=0);for(var a,i=e(this.left_brackets);!(a=i()).done;){var s=a.value,r=this.exact(s.asciimath,t);if(r)return{tex:s.tex,pos:t,end:r.end,asciimath:s.asciimath,ttype:"left_bracket"}}},a.leftright_bracket=function(t,a){void 0===t&&(t=0);for(var i,s=e(this.leftright_brackets);!(i=s()).done;){var r=i.value,c=this.exact(r.asciimath,t);if(c)return{tex:"left"==a?r.left_tex:"right"==a?r.right_tex:r.free_tex,pos:t,end:c.end,ttype:"leftright_bracket"}}},a.text=function(t){void 0===t&&(t=0);var e=this.match(/^"([^"]*)"/,t);if(e){var a=this.escape_text(e.match[1]);return{tex:"\\text{"+a+"}",pos:t,end:e.end,ttype:"text",text:a}}var i=this.match(/^(?:mbox|text)\s*(\([^)]*\)?|\{[^}]*\}?|\[[^\]]*\]?)/,t);if(i){var s=this.escape_text(i.match[1].slice(1,i.match[1].length-1));return{tex:"\\text{"+s+"}",pos:t,end:i.end,ttype:"text",text:s}}},a.binary=function(t){void 0===t&&(t=0);for(var a,i=e(this.binary_symbols);!(a=i()).done;){var s=a.value,r=this.exact(s.asciimath,t),c=s.option?["[","]"]:["{","}"],n=c[0],h=c[1];if(r){var o=this.unbracket(this.simple(r.end));if(o){var m=s.rawfirst?o.middle_asciimath:o.tex,x=this.unbracket(this.simple(o.end));return x?{tex:""+s.tex+n+m+h+"{"+x.tex+"}",pos:t,end:x.end,ttype:"binary",op:s,arg1:o,arg2:x}:{tex:""+s.tex+n+m+h+"{}",pos:t,end:o.end,ttype:"binary",op:s,arg1:o,arg2:null}}return{tex:""+s.tex+n+h+"{}",pos:t,end:r.end,ttype:"binary",op:s,arg1:null,arg2:null}}}},a.unary=function(t){void 0===t&&(t=0);for(var a,i=e(this.unary_symbols);!(a=i()).done;){var s=a.value,r=this.exact(s.asciimath,t);if(r){var c=this.subsup(r.end),n=c?c.tex:"",h=this.simple(c?c.end:r.end),o=s.func?h:this.unbracket(h),m=o&&(s.raw?o.middle_asciimath:o.tex);if(s.rewriteleftright){var x=s.rewriteleftright,l=x[0],u=x[1];return o?{tex:"\\left "+l+" "+m+" \\right "+u+" "+n,pos:t,end:o.end,ttype:"unary",op:r,subsup:c,arg:o}:{tex:"\\left "+l+" \\right "+u+" "+n,pos:t,end:r.end,ttype:"unary",op:r,subsup:c,arg:null}}return o?{tex:""+s.tex+n+"{"+m+"}",pos:t,end:o.end,ttype:"unary",op:r,subsup:c,arg:o}:{tex:""+s.tex+n+"{}",pos:t,end:r.end,ttype:"unary",op:r,subsup:c,arg:null}}}},a.constant=function(t){if(void 0===t&&(t=0),!this.right_bracket(t))return this.longest([this.other_constant(t),this.greek(t),this.name(t),this.number(t),this.arbitrary_constant(t)])},a.name=function(t){return void 0===t&&(t=0),this.literal(this.match(/^[A-Za-z]/,t))},a.greek=function(t){void 0===t&&(t=0);var e=new RegExp("^("+this.greek_letters.join("|")+")"),a=this.match(e,t);if(a)return{tex:"\\"+a.token,pos:t,end:a.end,ttype:"greek"}},a.number=function(t){void 0===t&&(t=0);var e=new RegExp("^\\d+("+this.decimalsign+"\\d+)?");return this.literal(this.match(e,t))},a.other_constant=function(t){void 0===t&&(t=0);for(var a,i=e(this.constants);!(a=i()).done;){var s=a.value,r=this.exact(s.asciimath,t);if(r)return{tex:""+s.tex,pos:r.pos,end:r.end,ttype:"other_constant"}}for(var c,n=e(this.relations);!(c=n()).done;){var h=c.value;if(!h.asciimath.match(/^!/)){var o=this.exact("!"+h.asciimath,t);if(o)return{tex:"\\not "+h.tex,pos:o.pos,end:o.end,ttype:"other_constant"}}}},a.arbitrary_constant=function(t){if(void 0===t&&(t=0),!this.eof(t)){if(this.exact(",",t))return;for(var a,i=e(this.non_constant_symbols.concat(this.left_brackets.map(function(t){return t.asciimath}),this.right_brackets.map(function(t){return t.asciimath}),this.leftright_brackets.map(function(t){return t.asciimath})));!(a=i()).done;)if(this.exact(a.value,t))return;var s=this.strip_space(t);return{tex:this.source(s).slice(0,1),pos:t,end:s+1,ttype:"arbitrary_constant"}}},t}();return a});
-//# sourceMappingURL=asciimath2tex.umd.js.map
-  </script>
-  -->
   <script>
 // ============================================================================
 // ASCIIMATH TO MATHQUILL KEYSTROKE PARSER
@@ -838,107 +832,153 @@ class MathParser:
     """Handles LaTeX parsing, structural comparison, and error popups"""
 
     GRAMMAR = r"""
-      start: matrix_ops
-           | expr
+start: matrix_ops
+   | expr
 
-      ?expr: sum
+?expr: sum
 
-      ?sum: sum "+" product   -> add
-          | sum "-" product   -> sub
-          | product
+?sum: sum "+" product   -> add
+  | sum "-" product   -> sub
+  | product
 
-      ?product: scalar matrix                 -> scalar_matrix_mul
-              | scalar matrix_env             -> scalar_matrix_mul
-              | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
-              | product "/" implicit                                      -> div
-              | implicit
+?product: scalar matrix                 -> scalar_matrix_mul
+      | scalar matrix_env             -> scalar_matrix_mul
+      | product ("*" | "\\cdot" | "\\times" | "\\ast") implicit   -> mul
+      | product "/" implicit                                      -> div
+      | implicit
 
-      ?implicit: implicit power        -> implicit_mul
-               | power
+?implicit: implicit power        -> implicit_mul
+       | power
 
-      ?power: "-" power                -> neg
-              | atom "^" power           -> power
-              | atom_degree              -> atom_to_degree
-              | atom
+?power: "-" power                -> neg
+    | atom_degree              -> atom_to_degree
+    | atom "^" power           -> power
+    | atom
 
-      ?atom: NUMBER                    -> number
-           | derivative_function
-           | partial_derivative_function
-           | trig_function
-           | log_function
-           | limit
-           | fraction
-           | abs_function
-           | matrix
-           | matrix_env
-           | "(" expr ")"              -> paren_expr
-           | "{" expr "}"              -> braces_expr
-           | PI                        -> pi_symbol
-           | INFTY                     -> infty_symbol
-           | SYMBOL                    -> symbol
-           | row_op
+?atom: NUMBER                    -> number
+   | derivative_function
+   | partial_derivative_function
+   | trig_function
+   | log_function
+   | limit
+   | fraction
+   | matrix
+   | matrix_env
+   | abs_function
+   | "(" expr ")"              -> paren_expr
+   | "{" expr "}"              -> braces_expr
+   | PI                        -> pi_symbol
+   | INFTY                     -> infty_symbol
+   | SYMBOL                    -> symbol
+   | row_op
 
-      scalar: NUMBER | SYMBOL
+scalar: NUMBER | SYMBOL
 
-      trig_function: TRIG_NAME "(" expr ")"    -> trig_func
+trig_function: TRIG_NAME "(" expr ")"    -> trig_func
 
-      log_function: LOG_NAME "(" expr ")"      -> log_func
+log_function: LOG_NAME "(" expr ")"      -> log_func
 
-      limit: "\\lim" "_" "{" SYMBOL "\\to" expr "}" expr -> limit_expr
+limit: LIM "_" "{" SYMBOL arrow expr "}" expr -> limit_expr
 
-      derivative_function: "__derivative" "(" SYMBOL "," expr ")" -> derivative_func
+derivative_function: "__derivative" "(" SYMBOL "," expr ")" -> derivative_func
 
-      partial_derivative_function: "__partial_derivative" "(" SYMBOL "," expr ")" -> partial_derivative_func
+partial_derivative_function: "__partial_derivative" "(" SYMBOL "," expr ")" -> partial_derivative_func
 
-      fraction: "\\frac" "{" expr "}" "{" expr "}" -> frac
+fraction: "\\frac" "{" expr "}" "{" expr "}" -> frac
 
-      abs_function: "\\left" "|" expr "\\right" "|"     -> abs_func
-                  | "|" expr "|"                          -> abs_func
+abs_function: "\\left" "|" expr "\\right" "|"     -> abs_func
 
-      # --- NEW (CORRECT) RULE ---
-      atom_degree: atom "^" degree_expr
+atom_degree: atom "^" degree_expr
 
-      # --- ADD THIS NEW RULE ---
-      degree_expr: "{" CIRC "}"
+degree_expr: "{" CIRC "}"
 
-      matrix: "[" matrix_rows "]" -> matrix_rows
-      matrix_rows: row ("," row)* -> matrix_rows
-      row: "[" elements "]" -> row
-      elements: expr ("," expr)* -> elements
+matrix: "[" matrix_rows "]" -> matrix_rows
+matrix_rows: row ("," row)* -> matrix_rows
+row: "[" elements "]" -> row
+elements: expr ("," expr)* -> elements
 
-      matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
+matrix_env: "\\begin" "{" /(bmatrix|pmatrix|matrix)/ "}" matrix_env_body "\\end" "{" /(bmatrix|pmatrix|matrix)/ "}" -> matrix_env
 
-      matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
-      matrix_env_row: expr ( "&" expr )*
+matrix_env_body: matrix_env_row ( "\\\\" matrix_env_row )*
+matrix_env_row: expr ( "&" expr )*
 
-      matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
+matrix_ops: matrix ("|" row_op)+ -> matrix_apply_ops
 
-      row_op: "R_" INT arrow row_expr                 -> row_replace
-            | "R_" INT swap_arrow "R_" INT            -> row_swap
+row_op: "R_" INT arrow row_expr                 -> row_replace
+    | "R_" INT swaparrow "R_" INT            -> row_swap
 
-      arrow: "\\to" | "\\leftarrow"
-      swap_arrow: "\\leftrightarrow"
+arrow: TO | LEFTARROW | RIGHTARROW | ARROWRIGHT | ARROWLEFT
+swaparrow: LEFTRIGHTARROW | SWAPLR
 
-      row_expr: "R_" INT                     -> row_reference
-               | expr "R_" INT               -> row_scale
-               | "R_" INT op expr "R_" INT   -> row_combine
+row_expr: "R_" INT                     -> row_reference
+       | expr "R_" INT               -> row_scale
+       | "R_" INT op expr "R_" INT   -> row_combine
 
-      op: "+" | "-"
+op: "+" | "-"
 
-      TRIG_NAME.2: "\\sin" | "\\cos" | "\\tan" | "\\cot" | "\\sec" | "\\csc"
-                 | "\\arcsin" | "\\arccos" | "\\arctan"
-      LOG_NAME.2: "\\log" | "\\ln" | "\\exp"
-      NUMBER: /[+-]?\d+(\.\d*)?|\.\d+/
-      INT: /\d+/
-      PI.2: "\\pi"
-      INFTY.2: "\\infty"
-      SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|lvert|rvert)(?![a-zA-Z0-9_]))[a-zA-Z][a-zA-Z0-9_]*/
-      CIRC: "\\circ"
+TRIG_NAME.2: /\\sin|\\cos|\\tan|\\cot|\\sec|\\csc|\\arcsin|\\arccos|\\arctan/
+LOG_NAME.2: /\\log|\\ln|\\exp/
+LIM.2: "\\lim"
+TO.2: "\\to"
+LEFTARROW.2: "\\leftarrow"
+RIGHTARROW.2: "\\rightarrow"
+LEFTRIGHTARROW.2: "\\leftrightarrow"
+ARROWRIGHT.2: "->"
+ARROWLEFT.2: "<-"
+SWAPLR.2: "<->"
+NUMBER: /[+-]?\d+(\.\d*)?|\.\d+/
+INT: /\d+/
+PI.2: "\\pi"
+INFTY.2: "\\infty"
+SYMBOL: /\\?(?!(?:sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|frac|left|right|begin|end|pi|infty|lim|to|leftarrow|rightarrow|leftrightarrow|lvert|rvert)(?![a-zA-Z0-9]))[a-zA-Z][a-zA-Z0-9]*/
+CIRC: "\\circ"
 
-      %import common.WS_INLINE
-      %ignore WS_INLINE
-      """
+%import common.WS_INLINE
+%ignore WS_INLINE
+"""
+    def sympy_to_json_serializable(self, obj):
+        """Convert SymPy objects to JSON-serializable format"""
+        import sympy as sp
 
+        if obj is None:
+            return None
+
+        # Handle SymPy numbers
+        if isinstance(obj, (sp.core.numbers.One, sp.core.numbers.Zero, 
+                           sp.core.numbers.NegativeOne)):
+            return int(obj)
+
+        if isinstance(obj, sp.Integer):
+            return int(obj)
+
+        if isinstance(obj, sp.Rational):
+            # Convert to float or keep as string "1/2"
+            return float(obj)  # or: return str(obj) to keep as fraction
+
+        if isinstance(obj, sp.Float):
+            return float(obj)
+
+        # Handle SymPy matrices
+        if isinstance(obj, sp.MatrixBase):
+            return [[self.sympy_to_json_serializable(cell) for cell in row] 
+                    for row in obj.tolist()]
+
+        # Handle expressions - convert to string
+        if isinstance(obj, sp.Basic):
+            return str(obj)
+
+        # Handle lists/tuples recursively
+        if isinstance(obj, (list, tuple)):
+            return [self.sympy_to_json_serializable(item) for item in obj]
+
+        # Handle dicts recursively
+        if isinstance(obj, dict):
+            return {key: self.sympy_to_json_serializable(value) 
+                    for key, value in obj.items()}
+
+        # Return as-is for primitive types
+        return obj
+    
     def __init__(self):
         from lark import Lark
         self.update_status("⏳ Building parser...")
@@ -952,7 +992,103 @@ class MathParser:
             div = document.createElement("div")
             div.appendChild(document.createTextNode(msg))
             container.appendChild(div)
-            
+    
+    def _preprocess_row_operations(self, latex_str):
+        """
+        Fix MathQuill's formatting of complex row operations.
+        Handles various patterns like fractions, negatives, and combinations.
+        Uses safer regex patterns to avoid infinite loops.
+        """
+        import re
+
+        # 0. FIRST: Convert LaTeX escaped spaces to regular spaces
+        latex_str = latex_str.replace(r'\ ', ' ')
+
+        # 1. Clean up excessive parentheses first (standard LaTeX cleanup)
+        latex_str = latex_str.replace(r'\left(', '(')
+        latex_str = latex_str.replace(r'\right)', ')')
+        latex_str = latex_str.replace(r'\left[', '[')
+        latex_str = latex_str.replace(r'\right]', ']')
+        latex_str = latex_str.replace(r'\left\{', '{')
+        latex_str = latex_str.replace(r'\right\}', '}')
+        latex_str = latex_str.replace(r'\left|', '|')
+        latex_str = latex_str.replace(r'\right|', '|')
+
+        # 2. Fix fractions with row reference in denominator (with optional parens around scalar)
+        # Handles: \frac{1}{2R_3} or \frac{1}{(2)R_3} -> (1/2)R_3
+        latex_str = re.sub(r'\\frac\{([^{}]+)\}\{\(?(\d+)\)?R_(\d+)\}', r'(\1/\2)R_\3', latex_str)
+
+        # 3. Fix fractions before row reference (with optional parens)
+        # Handles: \frac{1}{2}R_3 or \frac{1}{(2)}R_3 -> (1/2)R_3
+        latex_str = re.sub(r'\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'(\1/\2)R_', latex_str)
+
+        # 4. Handle negative fractions
+        # Handles: -\frac{1}{2}R_3 -> (-1/2)R_3
+        latex_str = re.sub(r'-\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'(-\1/\2)R_', latex_str)
+
+        # 5. Fix fractions in combine operations
+        # Handles: R_2+\frac{1}{2}R_3 -> R_2+(1/2)R_3
+        latex_str = re.sub(r'([+\-])\\frac\{([^{}]+)\}\{\(?([^{}]+?)\)?\}R_', r'\1(\2/\3)R_', latex_str)
+
+        # 6. IMPROVED: Remove outer wrapping parentheses from row scale expressions
+        # Handles: (-(1/2)R_3) -> -(1/2)R_3
+        # Handles: ((1/2)R_3) -> (1/2)R_3
+        latex_str = re.sub(r'\((-?\([^)]+\)R_\d+)\)', r'\1', latex_str)
+
+        # 6b. Remove parentheses wrapping entire row operations after arrow
+        # Handles: R_3\to (-(1/2)R_3) -> R_3\to -(1/2)R_3
+        # Handles: R_3\to ((1/2)R_3) -> R_3\to (1/2)R_3
+        latex_str = re.sub(
+            r'(R_\d+\s*(?:\\to|\\rightarrow|->)\s*)\(([^()]+R_\d+)\)(?=\s*(?:\||$))', 
+            r'\1\2', 
+            latex_str
+        )
+
+        # 6c. Remove standalone row reference parentheses
+        # Handles: (R_1) -> R_1
+        latex_str = re.sub(r'\((R_\d+)\)', r'\1', latex_str)
+
+        # 7. Remove single-number parentheses before R_
+        # Handles: (2)R_1 -> 2R_1
+        latex_str = re.sub(r'\((\d+)\)R_', r'\1R_', latex_str)
+
+        # 7b. Remove single negative number parentheses before R_
+        # Handles: (-2)R_1 -> -2R_1
+        latex_str = re.sub(r'\((-\d+)\)R_', r'\1R_', latex_str)
+
+        # 7.5. Insert implicit coefficient 1 in row combinations
+        # Handles: R_2-R_1 -> R_2-1R_1
+        # Handles: R_2+R_1 -> R_2+1R_1
+        latex_str = re.sub(r'(R_\d+)\s*([+\-])\s*R_', r'\1\g<2>1R_', latex_str)
+
+        # 8. Ensure space after arrows for tokenization
+        latex_str = re.sub(r'\\to(?=\S)', r'\\to ', latex_str)
+        latex_str = re.sub(r'\\leftarrow(?=\S)', r'\\leftarrow ', latex_str)
+        latex_str = re.sub(r'\\leftrightarrow(?=\S)', r'\\leftrightarrow ', latex_str)
+        latex_str = re.sub(r'\\rightarrow(?=\S)', r'\\rightarrow ', latex_str)
+        latex_str = re.sub(r'->(?=\S)', r'-> ', latex_str)
+        latex_str = re.sub(r'<-(?=\S)', r'<- ', latex_str)
+        latex_str = re.sub(r'<->(?=\S)', r'<-> ', latex_str)
+
+        # 9. Remove extra pipes in the middle
+        # Handles: || -> |
+        latex_str = re.sub(r'\|{2,}', '|', latex_str)
+
+        # 10. Remove trailing pipe from row operations
+        latex_str = re.sub(r'\|\s*$', '', latex_str)
+
+        # 11. Handle cdot if used
+        # Handles: \cdot -> *
+        latex_str = latex_str.replace(r'\cdot', '*')
+
+        # 12. Clean up multiple spaces
+        latex_str = re.sub(r'\s+', ' ', latex_str)
+
+        # 13. Trim leading/trailing spaces
+        latex_str = latex_str.strip()
+
+        return latex_str
+    
     def _preprocess_derivatives(self, latex_str):
         """
         Rewrites \frac{d}{dx}(...) and \frac{\partial}{\partial x}(...)
@@ -982,15 +1118,25 @@ class MathParser:
         import re
         from lark.exceptions import UnexpectedToken, UnexpectedCharacters, UnexpectedEOF
 
-        cleaned = self.clean_latex(latex)
-        # ADD THIS LINE:
-        clean = self._preprocess_derivatives(cleaned)
+        window.console.log(f"🔍 [DEBUG 1] Original LaTeX: {latex}")
 
-        window.console.log(f"Original LaTeX: {latex}")
+        cleaned = self.clean_latex(latex)
+        window.console.log(f"🔍 [DEBUG 2] After clean_latex: {cleaned}")
+
+        clean = self._preprocess_derivatives(cleaned)
+        window.console.log(f"🔍 [DEBUG 3] After preprocess_derivatives: {clean}")
+
+        # Preprocess row operations
+        clean = self._preprocess_row_operations(clean)
+        window.console.log(f"🔍 [DEBUG 4] After preprocess_row_operations: {clean}")
         window.console.log(f"Cleaned LaTeX: {clean}")
 
         try:
+            window.console.log(f"🔍 [DEBUG 5] About to call parser.parse()...")
             tree = self.parser.parse(clean)
+            window.console.log(f"🔍 [DEBUG 6] Parse successful, tree type: {type(tree)}")
+
+            window.console.log(f"🔍 [DEBUG 7] About to call transformer.transform()...")
             result = self.transformer.transform(tree)
             window.console.log(f"🔍 Transformed result: {result}")
             return result
@@ -999,23 +1145,20 @@ class MathParser:
             pos = getattr(e, "pos_in_stream", None)
             line = getattr(e, "line", "?")
             col = getattr(e, "column", "?")
-
-            # Remove “Expected …” section from Lark message
+            # Remove "Expected …" section from Lark message
             raw_msg = str(e)
             simplified_msg = re.sub(r"Expected one of:.*", "", raw_msg, flags=re.DOTALL).strip()
-
-            # Build context with caret
+            # Build context with caret (FIXED: use 'clean' instead of 't')
             try:
                 span = 35
                 start = max(0, (pos or 0) - span)
-                end = min(len(t), (pos or 0) + span)
-                snippet = t[start:end]
+                end = min(len(clean), (pos or 0) + span)  # FIXED: was 't'
+                snippet = clean[start:end]  # FIXED: was 't'
                 caret_pos = (pos or 0) - start
                 caret_line = " " * caret_pos + "↑"
                 context = f"{snippet}\n{caret_line}"
             except Exception:
-                context = t
-
+                context = clean  # FIXED: was 't'
             msg = (
                 f"❌ Parse error in LaTeX:\n\n"
                 f"Line: {line}, Column: {col}\n"
@@ -1028,6 +1171,12 @@ class MathParser:
             return None
 
         except Exception as e:
+            window.console.error(f"❌ [DEBUG ERROR] Exception type: {type(e).__name__}")
+            window.console.error(f"❌ [DEBUG ERROR] Exception message: {str(e)}")
+            import traceback
+            tb_str = traceback.format_exc()
+            window.console.error(f"❌ [DEBUG ERROR] Traceback:\n{tb_str}")
+
             msg = f"❌ General parse error: {e}"
             window.console.error(msg)
             self._show_error_popup(msg)
@@ -1268,7 +1417,7 @@ class MathParser:
               return sp.Function(func_str)(expr)
 
           def limit_expr(self, var, value, expr):
-              return sp.Limit(expr, sp.Symbol(str(var)), value)
+            return sp.Limit(expr, sp.Symbol(str(var)), value)
 
           def implicit_mul(self, a, b):
               if isinstance(a, sp.Matrix) or isinstance(b, sp.Matrix):
@@ -1292,14 +1441,10 @@ class MathParser:
           # --- NEW METHOD FOR DEGREES ---
           def atom_to_degree(self, tree):
             """
-            Handles expressions like 90^\circ when called via an inline alias.
-            The 'tree' argument is the entire 'atom_degree' tree.
+            Handles expressions like 90^\circ.
+            Converts degrees to radians by multiplying by pi/180.
             """
-            # The children of the 'atom_degree' tree are the 'atom' and 'degree_expr'
             atom = tree.children[0]
-            # degree_expr = tree.children[1] # We don't need this
-
-            # Now perform the calculation
             return sp.pi * atom / 180
 
           def elements(self, *items):
@@ -1334,11 +1479,11 @@ class MathParser:
           def row_scale(self, factor, i):
               return ("scale", int(i), factor)
 
-          def row_replace(self, target, expr):
-              return ("replace", int(target), expr)
+          def row_replace(self, target, arrow, expr):
+            return ("replace", int(target), expr)
 
-          def row_swap(self, i, j):
-              return ("swap", int(i), int(j))
+          def row_swap(self, i, swap_arrow, j):
+            return ("swap", int(i), int(j))
 
           def row_combine(self, i, op, factor, j):
               return ("combine", int(i), str(op), factor, int(j))
@@ -1716,13 +1861,13 @@ class Step:
             self.parse_preview_el.innerText = "⚠️ Please enter an expression first."
             self._animate_glow(self.dom_element.querySelector(".step-expr"), "#ca8a04")
             return
-        
+
         try:
             parsed = self.math_parser.parse_latex(tex)
             if parsed:
                 # Validate limit problems before generating answer
                 is_valid, error_msg = self.math_parser.validate_limit(parsed)
-                
+
                 if not is_valid:
                     self.parse_preview_el.innerText = (
                         f"⚠️ Invalid Limit Problem\n\n"
@@ -1737,15 +1882,31 @@ class Step:
                     self.parse_preview_el.style.color = "#dc2626"
                     self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
                     return
-                
+
                 # If valid or not a limit, proceed with normalization
                 result = self.math_parser.normalize_expr(parsed)
-                
+
                 if isinstance(result, sp.Matrix):
-                    pretty = json.dumps(result.tolist(), indent=2)
-                    self.expected_mf.latex(f"\\text{{{pretty}}}")
+                    # Convert matrix to bracket notation that MathQuill and parser both understand
+                    matrix_list = self._make_json_serializable(result.tolist())
+
+                    # Build LaTeX in bracket format: [[1,2],[3,4]]
+                    rows_latex = []
+                    for row in matrix_list:
+                        row_str = ','.join([str(val) for val in row])
+                        rows_latex.append(f"[{row_str}]")
+                    matrix_latex = '[' + ','.join(rows_latex) + ']'
+
+                    # Use \left[ \right] for better display in MathQuill
+                    display_latex = '\\left[' + ','.join([f"\\left[{','.join([str(v) for v in row])}\\right]" for row in matrix_list]) + '\\right]'
+
+                    self.expected_mf.latex(display_latex)
+
+                    # For preview, show as JSON
+                    pretty = json.dumps(matrix_list, indent=2)
                     self.parse_preview_el.innerText = f"✅ Matrix Result:\n{pretty}"
                     self.parse_preview_el.style.color = "#16a34a"
+                    self._animate_glow(self.dom_element.querySelector(".step-expected"), "#16a34a")
                 else:
                     latex_result = sp.latex(result)
                     self.expected_mf.latex(latex_result)
@@ -1756,9 +1917,51 @@ class Step:
             self.parse_preview_el.innerText = f"❌ Error generating: {ex}"
             self.parse_preview_el.style.color = "#dc2626"
             self._animate_glow(self.dom_element.querySelector(".step-expr"), "#dc2626")
-        
+
         if hasattr(window, 'problem_creator'):
             window.problem_creator.data_manager.save_to_storage()
+
+    def _make_json_serializable(self, obj):
+        """Convert SymPy objects to JSON-serializable format"""
+        import sympy as sp
+
+        if obj is None:
+            return None
+
+        # Handle SymPy numbers
+        if isinstance(obj, (sp.core.numbers.One, sp.core.numbers.Zero, 
+                           sp.core.numbers.NegativeOne)):
+            return int(obj)
+
+        if isinstance(obj, sp.Integer):
+            return int(obj)
+
+        if isinstance(obj, sp.Rational):
+            return float(obj)
+
+        if isinstance(obj, sp.Float):
+            return float(obj)
+
+        # Handle SymPy matrices
+        if isinstance(obj, sp.MatrixBase):
+            return [[self._make_json_serializable(cell) for cell in row] 
+                    for row in obj.tolist()]
+
+        # Handle expressions - convert to string
+        if isinstance(obj, sp.Basic):
+            return str(obj)
+
+        # Handle lists/tuples recursively
+        if isinstance(obj, (list, tuple)):
+            return [self._make_json_serializable(item) for item in obj]
+
+        # Handle dicts recursively
+        if isinstance(obj, dict):
+            return {key: self._make_json_serializable(value) 
+                    for key, value in obj.items()}
+
+        # Return as-is for primitive types
+        return obj
 
     def _convert_asciimath_to_latex_js(self, text):
       """
